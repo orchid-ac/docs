@@ -1,0 +1,30 @@
+---
+title: Models
+description: GET /v1/models
+---
+
+## List models
+
+```
+GET https://llm.orchid.ac/v1/models
+```
+
+Returns available models for your API key.
+
+```bash
+curl https://llm.orchid.ac/v1/models \
+  -H "Authorization: Bearer orchid-your-key-here"
+```
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id":       "orchid01",
+      "object":   "model",
+      "owned_by": "orchid"
+    }
+  ]
+}
+```

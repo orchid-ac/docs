@@ -1,0 +1,85 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Orchid",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#c8a96e",
+    "light": "#d4b87a",
+    "dark": "#9a7d4a"
+  },
+  "topbarLinks": [
+    {
+      "name": "Dashboard",
+      "url": "https://app.orchid.ac"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get API Access",
+    "url": "https://app.orchid.ac"
+  },
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Status",
+      "icon": "signal",
+      "url": "https://status.orchid.ac"
+    },
+    {
+      "name": "Support",
+      "icon": "envelope",
+      "url": "mailto:hello@orchid.ac"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "getting-started/quickstart",
+        "getting-started/authentication",
+        "getting-started/models"
+      ]
+    },
+    {
+      "group": "Guides",
+      "pages": [
+        "guides/thinking-mode",
+        "guides/hallucination-detection",
+        "guides/tool-calling",
+        "guides/max-tokens",
+        "guides/webhooks"
+      ]
+    },
+    {
+      "group": "Integrations",
+      "pages": [
+        "integrations/python",
+        "integrations/javascript",
+        "integrations/langchain",
+        "integrations/cursor",
+        "integrations/vercel-ai-sdk",
+        "integrations/litellm"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/chat-completions",
+        "api-reference/models",
+        "api-reference/usage",
+        "api-reference/webhooks"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "linkedin": "https://uk.linkedin.com/company/orchidtechnologies"
+  }
+}

@@ -1,0 +1,97 @@
+---
+title: Chat Completions
+description: POST /v1/chat/completions
+---
+
+## Endpoint
+
+```
+POST https://llm.orchid.ac/v1/chat/completions
+```
+
+OpenAI-compatible. Accepts the same request body as `POST /v1/chat/completions` on the OpenAI API, plus an optional `orchid` config object.
+
+## Request
+
+### Headers
+
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Bearer <your-orchid-key>` |
+| `Content-Type` | `application/json` |
+
+### Body
+
+All standard OpenAI chat completion fields are supported. Key fields:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `model` | string | required | Use `orchid01` |
+| `messages` | array | required | Conversation history |
+| `max_tokens` | integer | `4096` | See [Max Tokens](/guides/max-tokens) |
+| `temperature` | number | `0.1` | Ignored in thinking mode (fixed at 1.0) |
+| `stream` | boolean | `false` | Stream response tokens |
+| `tools` | array | — | Tool definitions (JSON Schema) |
+| `tool_choice` | string/object | `auto` | Tool selection behaviour |
+| `orchid` | object | — | Orchid-specific config (see below) |
+
+### The `orchid` config object
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `thinking` | boolean | `false` | Enable deep reasoning mode |
+| `dehallucinate` | boolean | `true` | Run grounding check |
+
+## Response
+
+Standard OpenAI chat completion response, plus an `orchid` field:
+
+```json
+{
+  "id":      "chatcmpl-abc123",
+  "object":  "chat.completion",
+  "model":   "orchid01",
+  "choices": [{
+    "index":         0,
+    "message": {
+      "role":    "assistant",
+      "content": "According to the filing..."
+    },
+    "finish_reason": "stop"
+  }],
+  "usage": {
+    "prompt_tokens":     1240,
+    "completion_tokens": 380,
+    "total_tokens":      1620
+  },
+  "orchid": {
+    "dehallucinate_requested": true,
+    "grounded":                true,
+    "score":                   0.97,
+    "flagged_spans":           [],
+    "checked":                 true
+  }
+}
+```
+
+## Error responses
+
+Errors follow the OpenAI error format:
+
+```json
+{
+  "error": {
+    "message": "Invalid API key",
+    "type":    "authentication_error",
+    "code":    "invalid_api_key",
+    "param":   null
+  }
+}
+```
+
+| Status | Type | Meaning |
+|--------|------|---------|
+| `400` | `invalid_request_error` | Malformed request body |
+| `401` | `authentication_error` | Invalid or missing API key |
+| `429` | `rate_limit_error` | Rate limit exceeded |
+| `502` | `upstream_error` | Upstream provider error |

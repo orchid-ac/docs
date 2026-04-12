@@ -1,0 +1,35 @@
+---
+title: LiteLLM
+description: Use orchid01 with LiteLLM
+---
+
+LiteLLM can treat Orchid as an OpenAI-compatible proxy — useful for teams that already route multiple LLM providers through LiteLLM.
+
+```python
+import litellm
+
+response = litellm.completion(
+    model="openai/orchid01",
+    api_base="https://llm.orchid.ac/v1",
+    api_key="orchid-your-key-here",
+    messages=[{"role": "user", "content": "Analyse this filing..."}],
+)
+print(response.choices[0].message.content)
+```
+
+The `openai/` prefix tells LiteLLM to use the OpenAI-compatible path. The model name after the prefix (`orchid01`) is forwarded to the Orchid API.
+
+## LiteLLM Proxy config
+
+If you're running a LiteLLM proxy server, add Orchid as a model in your config:
+
+```yaml
+model_list:
+  - model_name: orchid01
+    litellm_params:
+      model: openai/orchid01
+      api_base: https://llm.orchid.ac/v1
+      api_key: os.environ/ORCHID_API_KEY
+```
+
+Then call it via your LiteLLM proxy as usual with `model: orchid01`.

@@ -1,0 +1,51 @@
+---
+title: Max Tokens
+description: Token limits and recommendations by mode
+---
+
+## Quick reference
+
+| Mode | Minimum | Recommended | Maximum |
+|------|---------|-------------|---------|
+| Standard | — | `4096` | `32768` |
+| Thinking | `16000` | `16384` | `32768` |
+
+## Standard mode
+
+```python
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=[...],
+    max_tokens=4096,  # default
+)
+```
+
+For longer documents or detailed analysis responses, increase to `8192`.
+
+## Thinking mode
+
+<Warning>
+  `max_tokens` below 16,000 in thinking mode risks truncated responses. Reasoning tokens count toward the limit — the model reasons before it answers, consuming tokens before the final response begins.
+</Warning>
+
+```python
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=[...],
+    max_tokens=16384,  # minimum for thinking mode
+    extra_body={"orchid": {"thinking": True}},
+)
+```
+
+If you pass `max_tokens` below 16,000 with thinking enabled, Orchid raises it automatically to 16,000 and adds `max_tokens_adjusted: true` to the response `orchid` field.
+
+## Recommendations by task
+
+| Task | Mode | `max_tokens` |
+|------|------|-------------|
+| Extract a specific figure | Standard | `1024` |
+| Summarise a filing section | Standard | `2048` |
+| Full document analysis | Standard | `4096–8192` |
+| Covenant extraction from long agreement | Standard | `8192` |
+| Complex multi-document analysis | Thinking | `16384` |
+| Multi-step scenario modelling | Thinking | `32768` |

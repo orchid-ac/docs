@@ -1,0 +1,69 @@
+---
+title: Webhooks
+description: POST /v1/webhooks/test
+---
+
+## Test webhook
+
+```
+POST https://llm.orchid.ac/v1/webhooks/test
+```
+
+Sends a test payload to the webhook URL configured on your API key. Use this to verify your endpoint is receiving and verifying signatures correctly.
+
+### Example
+
+```bash
+curl -X POST https://llm.orchid.ac/v1/webhooks/test \
+  -H "Authorization: Bearer orchid-your-key-here"
+```
+
+### Response
+
+```json
+{
+  "success":      true,
+  "delivered_to": "https://your-server.com/webhooks/orchid"
+}
+```
+
+### Error — no webhook configured
+
+```json
+{
+  "error": {
+    "message": "No webhook URL configured for this API key.",
+    "type":    "invalid_request_error",
+    "code":    "invalid_request"
+  }
+}
+```
+
+### Test payload shape
+
+The payload sent to your endpoint:
+
+```json
+{
+  "event":               "llm.request.completed",
+  "test":                true,
+  "request_id":          "test-a1b2c3d4",
+  "timestamp":           "2026-04-11T19:00:00Z",
+  "user_id":             "your-user-id",
+  "model":               "orchid01",
+  "input_tokens":        142,
+  "output_tokens":       38,
+  "total_tokens":        180,
+  "latency_ms":          843,
+  "status_code":         200,
+  "streaming":           false,
+  "prompt":              "What was the net leverage ratio in the Q3 credit agreement?",
+  "response_text":       "According to the Q3 2024 credit agreement, net leverage was 3.8x against a 4.0x threshold.",
+  "grounded":            true,
+  "hallucination_score": 0.97
+}
+```
+
+`"test": true` is included so your server can identify test deliveries and handle them separately if needed.
+
+For signature verification and full webhook documentation, see the [Webhooks guide](/guides/webhooks).

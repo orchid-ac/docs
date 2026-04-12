@@ -1,0 +1,49 @@
+---
+title: Usage
+description: GET /v1/usage
+---
+
+## Get usage summary
+
+```
+GET https://llm.orchid.ac/v1/usage
+```
+
+Returns token usage and cost for the current billing period.
+
+### Query parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `days` | integer | `30` | Number of days to include |
+
+### Example
+
+```bash
+curl "https://llm.orchid.ac/v1/usage?days=30" \
+  -H "Authorization: Bearer orchid-your-key-here"
+```
+
+```json
+{
+  "client":        "Fund A",
+  "period_days":   30,
+  "requests":      1842,
+  "input_tokens":  2400000,
+  "output_tokens": 800000,
+  "total_tokens":  3200000,
+  "avg_latency_ms": 843,
+  "cost_usd":      8.16
+}
+```
+
+### Response fields
+
+| Field | Description |
+|-------|-------------|
+| `requests` | Total number of API calls |
+| `input_tokens` | Total prompt tokens consumed |
+| `output_tokens` | Total completion tokens generated |
+| `total_tokens` | Sum of input and output tokens |
+| `avg_latency_ms` | Average response latency in milliseconds |
+| `cost_usd` | Total cost in USD for the period |

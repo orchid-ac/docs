@@ -1,0 +1,129 @@
+---
+title: Webhooks
+description: Receive audit logs on your own infrastructure after every request
+---
+
+## Overview
+
+Configure a webhook URL on your API key and Orchid will POST an audit payload to your server after every completed request. This lets you write logs to your own database, compliance system, or SIEM — without your data passing through Orchid's infrastructure.
+
+Configure your webhook URL in [app.orchid.ac](https://app.orchid.ac) under **Settings → API Keys**.
+
+## Payload
+
+```json
+{
+  "event":               "llm.request.completed",
+  "request_id":          "a1b2c3d4",
+  "timestamp":           "2026-04-11T19:00:00Z",
+  "user_id":             "uuid",
+  "model":               "orchid01",
+  "input_tokens":        1240,
+  "output_tokens":       380,
+  "total_tokens":        1620,
+  "latency_ms":          843,
+  "status_code":         200,
+  "streaming":           false,
+  "prompt":              "What were the covenants in the Q3 credit agreement?",
+  "response_text":       "According to the Q3 2024 credit agreement...",
+  "grounded":            true,
+  "hallucination_score": 0.97
+}
+```
+
+## Signature verification
+
+If you configure a signing secret, every request includes an `X-Orchid-Signature` header. Verify it to confirm the payload came from Orchid.
+
+```
+X-Orchid-Signature: sha256=<hmac_hex>
+```
+
+The signature is `HMAC-SHA256(secret, raw_request_body)`.
+
+<Warning>
+  Always verify against the **raw request body bytes** — not re-serialised JSON. Parsing and re-serialising can change whitespace or key ordering, causing valid signatures to fail.
+</Warning>
+
+<CodeGroup>
+
+```python Python
+import hmac
+import hashlib
+
+def verify_webhook(secret: str, body: bytes, header: str) -> bool:
+    expected = "sha256=" + hmac.new(
+        secret.encode(),
+        body,
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(expected, header)
+
+# In your webhook handler (e.g. FastAPI):
+@app.post("/webhooks/orchid")
+async def webhook(request: Request):
+    body      = await request.body()
+    signature = request.headers.get("X-Orchid-Signature", "")
+    
+    if not verify_webhook(WEBHOOK_SECRET, body, signature):
+        raise HTTPException(status_code=401)
+    
+    payload = json.loads(body)
+    # write to your DB, compliance system, etc.
+    return {"ok": True}
+```
+
+```typescript TypeScript
+import crypto from "crypto";
+
+function verifyWebhook(secret: string, body: Buffer, header: string): boolean {
+  const expected =
+    "sha256=" +
+    crypto.createHmac("sha256", secret).update(body).digest("hex");
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(header));
+}
+
+// Express example:
+app.post("/webhooks/orchid", express.raw({ type: "application/json" }), (req, res) => {
+  const sig = req.headers["x-orchid-signature"] as string;
+  if (!verifyWebhook(process.env.WEBHOOK_SECRET!, req.body, sig)) {
+    return res.status(401).send("Invalid signature");
+  }
+  const payload = JSON.parse(req.body.toString());
+  // write to your DB
+  res.json({ ok: true });
+});
+```
+
+</CodeGroup>
+
+<Info>
+  Use `hmac.compare_digest` (Python) or `crypto.timingSafeEqual` (Node) rather than `==`. Constant-time comparison prevents timing attacks where an attacker infers the correct signature by measuring response times.
+</Info>
+
+## Testing
+
+Send a test payload to your configured webhook URL from the [dashboard](https://app.orchid.ac), or via the API:
+
+```bash
+curl -X POST https://llm.orchid.ac/v1/webhooks/test \
+  -H "Authorization: Bearer orchid-your-key-here"
+```
+
+Response:
+```json
+{
+  "success": true,
+  "delivered_to": "https://your-server.com/webhooks/orchid"
+}
+```
+
+The test payload includes `"test": true` so your server can handle it differently if needed (e.g. skip writing to your compliance DB).
+
+## Retries
+
+If your endpoint returns a non-2xx status, Orchid logs the failure. Check **last delivery status** in your dashboard settings.
+
+<Note>
+  Webhook delivery is best-effort and asynchronous — it never delays or affects the API response your code receives.
+</Note>

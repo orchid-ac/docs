@@ -1,0 +1,120 @@
+---
+title: Tool Calling
+description: Connect orchid01 to your data sources and workflows
+---
+
+## Overview
+
+orchid01 supports OpenAI-compatible tool calling. Define tools using JSON Schema, pass them in the request, and the model returns structured tool calls when it needs to use them.
+
+This works with any tool definition you'd use with OpenAI — including MCP tools, LangChain tools, and custom functions.
+
+## Basic example
+
+```python
+tools = [{
+    "type": "function",
+    "function": {
+        "name":        "get_sec_filing",
+        "description": "Retrieve an SEC filing by ticker and form type",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker":    {"type": "string", "description": "Company ticker symbol"},
+                "form_type": {"type": "string", "enum": ["10-K", "10-Q", "8-K", "13-F"]},
+            },
+            "required": ["ticker", "form_type"],
+        },
+    },
+}]
+
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=[{"role": "user", "content": "Get Apple's latest 10-K"}],
+    tools=tools,
+    temperature=0.1,
+)
+
+tool_call = response.choices[0].message.tool_calls[0]
+print(tool_call.function.name)       # get_sec_filing
+print(tool_call.function.arguments)  # {"ticker": "AAPL", "form_type": "10-K"}
+```
+
+## Full agentic loop
+
+```python
+import json
+
+messages = [{"role": "user", "content": "Analyse Apple's latest 10-K for covenant risks"}]
+
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=messages,
+    tools=tools,
+)
+
+if response.choices[0].message.tool_calls:
+    tool_call = response.choices[0].message.tool_calls[0]
+    args      = json.loads(tool_call.function.arguments)
+    
+    # Execute your tool
+    result = get_sec_filing(**args)
+    
+    # Send result back
+    messages.append(response.choices[0].message)
+    messages.append({
+        "role":         "tool",
+        "tool_call_id": tool_call.id,
+        "content":      json.dumps(result),
+    })
+    
+    # Get final response
+    final = client.chat.completions.create(
+        model="orchid01",
+        messages=messages,
+        tools=tools,
+        extra_body={"orchid": {"dehallucinate": True}},
+    )
+    print(final.choices[0].message.content)
+```
+
+## MCP tools
+
+orchid01 works with MCP (Model Context Protocol) tools. Your MCP server runs client-side — translate its tool definitions into JSON Schema format and pass them in the request as shown above.
+
+Popular finance MCP servers that work with orchid01:
+
+- **EdgarTools** — 13 tools for SEC EDGAR filings, financial statements, insider trading, live filings feed. No API key required.
+- **Bloomberg** — connects to your existing Bloomberg Terminal via blpapi.
+- **Alpha Vantage** — real-time and historical market data.
+
+## LangChain agents
+
+```python
+from langchain_openai  import ChatOpenAI
+from langchain.agents  import AgentExecutor, create_openai_tools_agent
+from langchain.tools   import tool
+
+llm = ChatOpenAI(
+    model="orchid01",
+    base_url="https://llm.orchid.ac/v1",
+    api_key="orchid-your-key-here",
+    temperature=0.1,
+)
+
+@tool
+def get_covenant_data(company: str) -> str:
+    """Get covenant data for a company from internal database"""
+    # your implementation
+    ...
+
+agent = create_openai_tools_agent(llm, [get_covenant_data], prompt)
+executor = AgentExecutor(agent=agent, tools=[get_covenant_data])
+executor.invoke({"input": "Check covenant headroom for Citadel"})
+```
+
+## Tips
+
+- Use low temperature (`0.0–0.2`) for tool calling — reduces hallucinated parameter values
+- Write detailed tool descriptions — the model decides when to call a tool based on the description
+- Use `tool_choice="required"` to force the model to always call a tool

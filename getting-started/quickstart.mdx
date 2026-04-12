@@ -1,0 +1,104 @@
+---
+title: Quickstart
+description: Make your first orchid01 API call in minutes
+---
+
+## Setup
+
+Get your API key from the [Orchid dashboard](https://app.orchid.ac) under **Settings → API Keys**.
+
+<Info>
+  orchid01 is OpenAI-compatible. If you've used the OpenAI SDK before, you already know how to use this API — just change the base URL and API key.
+</Info>
+
+## Your first call
+
+<CodeGroup>
+
+```python Python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://llm.orchid.ac/v1",
+    api_key="orchid-your-key-here",
+)
+
+r = client.chat.completions.create(
+    model="orchid01",
+    messages=[{"role": "user", "content": "Summarise this 10-K filing..."}],
+)
+print(r.choices[0].message.content)
+```
+
+```typescript TypeScript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://llm.orchid.ac/v1",
+  apiKey: process.env.ORCHID_API_KEY!,
+});
+
+const r = await client.chat.completions.create({
+  model: "orchid01",
+  messages: [{ role: "user", content: "Summarise this 10-K filing..." }],
+});
+console.log(r.choices[0]?.message?.content);
+```
+
+```bash curl
+curl -s https://llm.orchid.ac/v1/chat/completions \
+  -H "Authorization: Bearer orchid-your-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "orchid01",
+    "messages": [{"role": "user", "content": "Summarise this 10-K filing..."}]
+  }'
+```
+
+</CodeGroup>
+
+## Streaming
+
+<CodeGroup>
+
+```python Python
+stream = client.chat.completions.create(
+    model="orchid01",
+    messages=[{"role": "user", "content": "Analyse this credit agreement..."}],
+    stream=True,
+)
+for chunk in stream:
+    piece = chunk.choices[0].delta.content or ""
+    if piece:
+        print(piece, end="", flush=True)
+```
+
+```typescript TypeScript
+const stream = await client.chat.completions.create({
+  model: "orchid01",
+  messages: [{ role: "user", content: "Analyse this credit agreement..." }],
+  stream: true,
+});
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content || "");
+}
+```
+
+</CodeGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/getting-started/authentication">
+    How API keys work and how to manage them
+  </Card>
+  <Card title="Models" icon="cpu" href="/getting-started/models">
+    orchid01 standard and thinking modes
+  </Card>
+  <Card title="Thinking Mode" icon="brain" href="/guides/thinking-mode">
+    Deep reasoning for complex financial analysis
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/guides/webhooks">
+    Audit logging to your own infrastructure
+  </Card>
+</CardGroup>

@@ -1,0 +1,68 @@
+---
+title: Vercel AI SDK & LiteLLM
+description: Use orchid01 with Vercel AI SDK and LiteLLM
+---
+
+## Vercel AI SDK
+
+```bash
+npm install ai @ai-sdk/openai
+```
+
+```typescript
+import { createOpenAI } from "@ai-sdk/openai";
+import { generateText, streamText } from "ai";
+
+const orchid = createOpenAI({
+  baseURL: "https://llm.orchid.ac/v1",
+  apiKey:  process.env.ORCHID_API_KEY!,
+});
+
+const { text } = await generateText({
+  model:  orchid("orchid01"),
+  prompt: "Summarise this 10-K filing...",
+});
+```
+
+### Streaming in Next.js
+
+```typescript
+import { streamText }    from "ai";
+import { createOpenAI }  from "@ai-sdk/openai";
+
+const orchid = createOpenAI({
+  baseURL: "https://llm.orchid.ac/v1",
+  apiKey:  process.env.ORCHID_API_KEY!,
+});
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = streamText({
+    model:    orchid("orchid01"),
+    messages,
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+---
+
+## LiteLLM
+
+LiteLLM can treat Orchid as an OpenAI-compatible proxy:
+
+```python
+import litellm
+
+response = litellm.completion(
+    model="openai/orchid01",
+    api_base="https://llm.orchid.ac/v1",
+    api_key="orchid-your-key-here",
+    messages=[{"role": "user", "content": "Hello"}],
+)
+print(response.choices[0].message.content)
+```
+
+The `openai/` prefix tells LiteLLM to use the OpenAI-compatible path. The model name after the prefix (`orchid01`) is passed to the API.

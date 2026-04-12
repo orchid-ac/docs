@@ -1,0 +1,72 @@
+---
+title: LangChain
+description: Use orchid01 with LangChain and LangGraph
+---
+
+## LangChain
+
+```bash
+pip install langchain-openai
+```
+
+```python
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(
+    model="orchid01",
+    base_url="https://llm.orchid.ac/v1",
+    api_key="orchid-your-key-here",
+    temperature=0.1,
+)
+
+msg = llm.invoke("Summarise this 10-K filing...")
+print(msg.content)
+```
+
+<Note>
+  Do not set `OPENAI_API_KEY` to a real OpenAI key when using Orchid. Pass your Orchid key via `api_key` directly.
+</Note>
+
+## Streaming with LCEL
+
+```python
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts        import ChatPromptTemplate
+
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a financial analyst."),
+    ("user",   "{input}"),
+])
+
+chain = prompt | llm | StrOutputParser()
+
+for chunk in chain.stream({"input": "Analyse this filing..."}):
+    print(chunk, end="", flush=True)
+```
+
+## LangGraph
+
+LangGraph uses LangChain chat models as nodes. Configure `ChatOpenAI` as above and pass it into your graph:
+
+```python
+from langchain_openai          import ChatOpenAI
+from langgraph.prebuilt        import create_react_agent
+from langchain_core.tools      import tool
+
+llm = ChatOpenAI(
+    model="orchid01",
+    base_url="https://llm.orchid.ac/v1",
+    api_key="orchid-your-key-here",
+)
+
+@tool
+def get_filing(ticker: str, form: str) -> str:
+    """Get an SEC filing for a company"""
+    # your implementation
+    ...
+
+agent = create_react_agent(llm, [get_filing])
+result = agent.invoke({"messages": [("user", "Get Apple's latest 10-K")]})
+```
+
+No Orchid-specific graph API — standard OpenAI-style chat completions under the hood.

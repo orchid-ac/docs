@@ -1,0 +1,100 @@
+---
+title: Hallucination Detection
+description: Response grounding scores on every API call
+---
+
+## Overview
+
+Every non-streaming orchid01 response includes a grounding score — a measure of how well the model's answer is supported by the documents you provided in the context.
+
+This runs automatically when `dehallucinate: true` (the default) and the response contains financial figures.
+
+## How it works
+
+The grounding check compares the model's response against your provided context — everything in `messages` except the last user message. It identifies specific claims that cannot be verified against your documents.
+
+```
+Your messages (system + prior turns) → context
+Last user message                    → question  
+Model response                       → checked against context
+```
+
+If a response contains a financial figure that doesn't appear in the provided context, it is flagged as a potentially unsupported claim.
+
+## Reading the grounding score
+
+Every response includes an `orchid` metadata field:
+
+```json
+{
+  "choices": [...],
+  "orchid": {
+    "dehallucinate_requested": true,
+    "grounded":                true,
+    "score":                   0.97,
+    "flagged_spans":           [],
+    "checked":                 true
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `grounded` | `true` if no unsupported claims were found |
+| `score` | 0.0–1.0. Higher is better. 1.0 = fully grounded |
+| `flagged_spans` | List of specific text spans that could not be verified |
+| `checked` | Whether the check actually ran |
+
+## When the check is skipped
+
+The check returns `checked: false` (and a default score of `1.0`) when:
+
+- The response contains no financial figures
+- The context is too short (under ~200 characters) — likely a bare question with no documents
+- `dehallucinate: false` was explicitly passed
+
+```json
+{
+  "orchid": {
+    "checked": false,
+    "reason":  "no financial figures in response",
+    "score":   1.0
+  }
+}
+```
+
+## Disabling the check
+
+Pass `dehallucinate: false` for speed-sensitive requests where you don't need grounding:
+
+```python
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=[...],
+    extra_body={"orchid": {"dehallucinate": False}},
+)
+```
+
+<Note>
+  The grounding check only runs on non-streaming requests — the full response must be available before it can be verified. Streaming responses always return `checked: false`.
+</Note>
+
+## Best practice
+
+For the most accurate grounding scores, provide document context explicitly in your messages rather than relying on the model's parametric memory:
+
+```python
+messages = [
+    {
+        "role": "system",
+        "content": "You are a financial analyst assistant.",
+    },
+    {
+        "role": "user",
+        # Provide the actual document text
+        "content": f"Filing excerpt:\n\n{filing_text}\n\nWhat was Q3 revenue?",
+    }
+]
+```
+
+Without document context, the model answers from memory and the grounding check has nothing to verify against.

@@ -1,0 +1,104 @@
+---
+title: Models
+description: orchid01 standard and thinking modes
+---
+
+## orchid01
+
+orchid01 is Orchid's finance-native model. Use model id `orchid01` in all requests.
+
+There are two modes — standard and thinking — controlled via the `orchid` config object in the request body.
+
+## Standard mode (default)
+
+Fast, direct responses. Recommended for most tasks: document extraction, summarisation, Q&A over provided context, structured data conversion.
+
+```python
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=[{"role": "user", "content": "Extract all covenants from this agreement..."}],
+    # thinking is off by default
+)
+```
+
+| Setting | Value |
+|---------|-------|
+| Default `max_tokens` | `4096` |
+| Default `temperature` | `0.1` |
+| Recommended `max_tokens` | `4096–8192` |
+
+## Thinking mode
+
+Extended reasoning for complex multi-step analysis. The model reasons through the problem before responding. Reasoning is visible in `reasoning_content` alongside the final answer in `content`.
+
+```python
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=[{"role": "user", "content": "Build a full covenant analysis..."}],
+    extra_body={"orchid": {"thinking": True}},
+)
+
+# Access reasoning and answer separately
+reasoning = response.choices[0].message.model_extra.get("reasoning_content", "")
+answer    = response.choices[0].message.content
+```
+
+<Warning>
+  Thinking mode requires `max_tokens` ≥ 16,000. Reasoning tokens count toward the limit — responses may be truncated below this threshold.
+</Warning>
+
+| Setting | Value |
+|---------|-------|
+| Minimum `max_tokens` | `16000` |
+| Recommended `max_tokens` | `16384–32768` |
+| `temperature` | Fixed at `1.0` (set automatically) |
+
+<Info>
+  If you pass `max_tokens` below 16,000 with thinking enabled, Orchid automatically raises it to 16,000 and includes `max_tokens_adjusted: true` in the response metadata.
+</Info>
+
+## The `orchid` config object
+
+Pass an `orchid` key alongside standard OpenAI fields to control Orchid-specific behaviour:
+
+```json
+{
+  "model": "orchid01",
+  "messages": [...],
+  "orchid": {
+    "thinking":      false,
+    "dehallucinate": true
+  }
+}
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `thinking` | boolean | `false` | Enable deep reasoning mode |
+| `dehallucinate` | boolean | `true` | Run grounding check and return `hallucination_score` |
+
+## Response metadata
+
+Every response includes an `orchid` field with grounding information:
+
+```json
+{
+  "choices": [...],
+  "orchid": {
+    "dehallucinate_requested": true,
+    "grounded":                true,
+    "score":                   0.97,
+    "flagged_spans":           [],
+    "checked":                 true
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `grounded` | Whether all claims are supported by provided context |
+| `score` | Confidence score 0.0–1.0 (1.0 = fully grounded) |
+| `flagged_spans` | Specific claims that could not be verified |
+| `checked` | Whether the grounding check actually ran |
+
+The check runs when `dehallucinate: true` (default), the response contains financial figures, and sufficient context was provided. If skipped, `checked: false` and `score: 1.0`.

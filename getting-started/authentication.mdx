@@ -1,0 +1,78 @@
+---
+title: Authentication
+description: How to authenticate with the Orchid API
+---
+
+## API Keys
+
+All requests require a bearer token in the `Authorization` header.
+
+```bash
+Authorization: Bearer orchid-your-key-here
+```
+
+Get your API key from [app.orchid.ac](https://app.orchid.ac) under **Settings → API Keys**.
+
+<Warning>
+  Your API key is secret. Never commit it to version control or expose it in client-side code. Use environment variables.
+</Warning>
+
+## Connection settings
+
+| Setting | Value |
+|---------|-------|
+| Base URL | `https://llm.orchid.ac/v1` |
+| Auth header | `Authorization: Bearer <your-key>` |
+| Model | `orchid01` |
+
+<Note>
+  The base URL must include `/v1`. Using `https://llm.orchid.ac` alone (without `/v1`) will return a 404.
+</Note>
+
+## Environment variables
+
+```bash
+export ORCHID_API_KEY="orchid-your-key-here"
+```
+
+Then in code:
+
+<CodeGroup>
+
+```python Python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://llm.orchid.ac/v1",
+    api_key=os.environ["ORCHID_API_KEY"],
+)
+```
+
+```typescript TypeScript
+const client = new OpenAI({
+  baseURL: "https://llm.orchid.ac/v1",
+  apiKey: process.env.ORCHID_API_KEY!,
+});
+```
+
+</CodeGroup>
+
+## Error responses
+
+Authentication errors return an OpenAI-compatible error object:
+
+```json
+{
+  "error": {
+    "message": "Invalid API key",
+    "type": "authentication_error",
+    "code": "invalid_api_key"
+  }
+}
+```
+
+| Status | Meaning |
+|--------|---------|
+| `401` | Missing or invalid API key |
+| `403` | Key exists but is inactive |

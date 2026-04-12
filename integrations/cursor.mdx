@@ -1,0 +1,28 @@
+---
+title: Cursor
+description: Use orchid01 as your coding model in Cursor
+---
+
+Cursor supports custom OpenAI-compatible endpoints. Point it at Orchid to use orchid01 for finance-aware code generation and analysis.
+
+## Setup
+
+1. Open **Cursor Settings** (⌘, or Ctrl+,)
+2. Navigate to **Models** or **AI** settings
+3. Enable **OpenAI API** or **Override OpenAI Base URL**
+4. Set:
+   - **Base URL:** `https://llm.orchid.ac/v1`
+   - **API Key:** your Orchid key (`orchid-…`)
+5. Add `orchid01` as a custom model name if the UI allows it
+
+## Usage
+
+Once configured, select `orchid01` from the model dropdown in Cursor. All chat and Composer requests will route through the Orchid API.
+
+<Info>
+  orchid01 is particularly useful in Cursor for finance-related codebases — analysing quantitative models, parsing financial data structures, and working with SEC filing parsers.
+</Info>
+
+<Note>
+  Features that rely on OpenAI-specific tooling may not apply. Chat completion and Composer workflows are fully supported.
+</Note>

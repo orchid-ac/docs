@@ -1,0 +1,83 @@
+---
+title: Python
+description: Use orchid01 with the OpenAI Python SDK
+---
+
+```bash
+pip install openai
+```
+
+## Setup
+
+```python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://llm.orchid.ac/v1",
+    api_key=os.environ["ORCHID_API_KEY"],
+)
+```
+
+## Chat completion
+
+```python
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=[
+        {"role": "system", "content": "You are a financial analyst."},
+        {"role": "user",   "content": "Summarise this 10-K filing..."},
+    ],
+    max_tokens=4096,
+    temperature=0.1,
+)
+print(response.choices[0].message.content)
+```
+
+## Streaming
+
+```python
+stream = client.chat.completions.create(
+    model="orchid01",
+    messages=[{"role": "user", "content": "Analyse this credit agreement..."}],
+    stream=True,
+)
+for chunk in stream:
+    piece = chunk.choices[0].delta.content or ""
+    if piece:
+        print(piece, end="", flush=True)
+```
+
+## Thinking mode
+
+```python
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=[{"role": "user", "content": "Complex multi-step analysis..."}],
+    max_tokens=16384,
+    extra_body={"orchid": {"thinking": True}},
+)
+
+reasoning = response.choices[0].message.model_extra.get("reasoning_content", "")
+answer    = response.choices[0].message.content
+```
+
+## With grounding score
+
+```python
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=[
+        {"role": "user", "content": f"Filing:\n\n{filing_text}\n\nWhat was Q3 revenue?"}
+    ],
+    extra_body={"orchid": {"dehallucinate": True}},
+)
+
+answer  = response.choices[0].message.content
+orchid  = response.model_extra.get("orchid", {})
+score   = orchid.get("score", 1.0)
+grounded = orchid.get("grounded", True)
+
+print(f"Answer: {answer}")
+print(f"Grounding score: {score} ({'✓' if grounded else '⚠ check flagged spans'})")
+```

@@ -1,0 +1,85 @@
+---
+title: Thinking Mode
+description: Deep reasoning for complex multi-step financial analysis
+---
+
+## Overview
+
+Thinking mode enables orchid01 to reason through complex problems before responding. The model's reasoning process is returned separately in `reasoning_content` alongside the final answer in `content`.
+
+Use thinking mode for tasks that require multi-step analysis — complex covenant structures, cross-document comparison, scenario modelling. For straightforward extraction or Q&A, standard mode is faster and sufficient.
+
+## Enabling thinking
+
+Pass `thinking: true` in the `orchid` config object:
+
+```python
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=[{
+        "role": "user",
+        "content": "Analyse the covenant package across these three credit agreements and identify any cross-default provisions..."
+    }],
+    max_tokens=16384,
+    extra_body={"orchid": {"thinking": True}},
+)
+
+reasoning = response.choices[0].message.model_extra.get("reasoning_content", "")
+answer    = response.choices[0].message.content
+
+print("Reasoning:", reasoning)
+print("Answer:",    answer)
+```
+
+## Streaming with thinking
+
+Both reasoning and answer stream separately. Each chunk includes a `type` field:
+
+```python
+stream = client.chat.completions.create(
+    model="orchid01",
+    messages=[...],
+    stream=True,
+    extra_body={"orchid": {"thinking": True}},
+)
+
+for chunk in stream:
+    delta = chunk.choices[0].delta
+    
+    # reasoning chunks come first
+    reasoning_piece = getattr(delta, "reasoning_content", None)
+    if reasoning_piece:
+        print(reasoning_piece, end="", flush=True)
+    
+    # then the final answer
+    content_piece = delta.content or ""
+    if content_piece:
+        print(content_piece, end="", flush=True)
+```
+
+## Token requirements
+
+<Warning>
+  Thinking mode requires `max_tokens` ≥ 16,000. Reasoning tokens count toward the limit — the model may be cut off mid-reasoning without enough headroom.
+</Warning>
+
+| Scenario | Recommended `max_tokens` |
+|----------|--------------------------|
+| Short analysis | `16384` |
+| Multi-document analysis | `32768` |
+| Complex agentic workflows | `32768` |
+
+If you pass `max_tokens` below 16,000 with thinking enabled, Orchid raises it automatically and sets `max_tokens_adjusted: true` in the response.
+
+## Temperature
+
+Temperature is fixed at `1.0` in thinking mode — you cannot override it. Orchid sets this automatically so you don't need to pass it.
+
+## When to use thinking mode
+
+| Use thinking | Use standard |
+|-------------|--------------|
+| Complex covenant analysis across multiple docs | Single document extraction |
+| Cross-default and cross-acceleration identification | Revenue and metric extraction |
+| Multi-step scenario modelling | Filing summarisation |
+| Ambiguous regulatory interpretation | Structured data conversion |

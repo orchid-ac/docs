@@ -1,0 +1,78 @@
+---
+title: JavaScript / TypeScript
+description: Use orchid01 with the OpenAI JavaScript SDK
+---
+
+```bash
+npm install openai
+```
+
+## Setup
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://llm.orchid.ac/v1",
+  apiKey:  process.env.ORCHID_API_KEY!,
+});
+```
+
+## Chat completion
+
+```typescript
+const response = await client.chat.completions.create({
+  model:    "orchid01",
+  messages: [
+    { role: "system", content: "You are a financial analyst." },
+    { role: "user",   content: "Summarise this 10-K filing..." },
+  ],
+  max_tokens:  4096,
+  temperature: 0.1,
+});
+console.log(response.choices[0]?.message?.content);
+```
+
+## Streaming
+
+```typescript
+const stream = await client.chat.completions.create({
+  model:    "orchid01",
+  messages: [{ role: "user", content: "Analyse this credit agreement..." }],
+  stream:   true,
+});
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content || "");
+}
+```
+
+## Vercel AI SDK
+
+```bash
+npm install ai @ai-sdk/openai
+```
+
+```typescript
+import { createOpenAI } from "@ai-sdk/openai";
+import { generateText, streamText } from "ai";
+
+const orchid = createOpenAI({
+  baseURL: "https://llm.orchid.ac/v1",
+  apiKey:  process.env.ORCHID_API_KEY!,
+});
+
+// Non-streaming
+const { text } = await generateText({
+  model:  orchid("orchid01"),
+  prompt: "Summarise this filing...",
+});
+
+// Streaming
+const { textStream } = await streamText({
+  model:    orchid("orchid01"),
+  messages: [{ role: "user", content: "Analyse this agreement..." }],
+});
+for await (const chunk of textStream) {
+  process.stdout.write(chunk);
+}
+```
