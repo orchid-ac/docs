@@ -3,9 +3,24 @@
   "theme": "mint",
   "name": "Orchid",
   "colors": {
-    "primary": "#c8a96e",
-    "light": "#d4b87a",
-    "dark": "#9a7d4a"
+    "primary": "#a3d1ff",
+    "light": "#d4e9ff",
+    "dark": "#1e6fe0"
+  },
+  "background": {
+    "decoration": "gradient",
+    "color": {
+      "light": "#ffffff",
+      "dark": "#0a0a0a"
+    }
+  },
+  "styling": {
+    "codeblocks": {
+      "theme": {
+        "light": "light-plus",
+        "dark": "dark-plus"
+      }
+    }
   },
   "favicon": "/favicon.svg",
   "logo": {
@@ -81,17 +96,29 @@
         {
           "anchor": "Dashboard",
           "href": "https://app.orchid.ac",
-          "icon": "gauge"
+          "icon": "gauge",
+          "color": {
+            "light": "#1d4ed8",
+            "dark": "#93c5fd"
+          }
         },
         {
           "anchor": "Status",
           "href": "https://status.orchid.ac",
-          "icon": "signal"
+          "icon": "signal",
+          "color": {
+            "light": "#0c8ce9",
+            "dark": "#38bdf8"
+          }
         },
         {
           "anchor": "Support",
           "href": "mailto:hello@orchid.ac",
-          "icon": "envelope"
+          "icon": "envelope",
+          "color": {
+            "light": "#64748b",
+            "dark": "#a3d1ff"
+          }
         }
       ]
     }
