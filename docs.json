@@ -3,9 +3,9 @@
   "theme": "mint",
   "name": "Orchid",
   "colors": {
-    "primary": "#a3d1ff",
-    "light": "#d4e9ff",
-    "dark": "#1e6fe0"
+    "primary": "#89C4E1",
+    "light": "#a8d4ea",
+    "dark": "#5a9ab5"
   },
   "background": {
     "decoration": "gradient",
