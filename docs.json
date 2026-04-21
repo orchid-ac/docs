@@ -68,9 +68,9 @@
             "pages": [
               "integrations/python",
               "integrations/javascript",
-              "integrations/anthropic",
               "integrations/langchain",
               "integrations/cursor",
+              "integrations/claude-code",
               "integrations/vercel-ai-sdk",
               "integrations/litellm"
             ]

@@ -59,7 +59,7 @@ curl -s https://llm.orchid.ac/v1/chat/completions \
 
 ## Anthropic Messages (Python)
 
-Use the official Anthropic client with the same **`/v1`** base URL and **`model: "orchid01"`**. Full guide: [Anthropic SDK](/integrations/anthropic).
+Use the official Anthropic client with the same **`/v1`** base URL and **`model: "orchid01"`**. Route reference: [Messages API](/api-reference/messages). For **Claude Code**, see [Claude Code](/integrations/claude-code).
 
 ```bash
 pip install anthropic
@@ -121,8 +121,8 @@ for await (const chunk of stream) {
   <Card title="Models" icon="cpu" href="/getting-started/models">
     orchid01 standard and thinking modes
   </Card>
-  <Card title="Anthropic SDK" icon="plug" href="/integrations/anthropic">
-    Claude Code and Messages API with the Anthropic client
+  <Card title="Claude Code" icon="plug" href="/integrations/claude-code">
+    Use orchid01 in Claude Code via `/v1/messages`
   </Card>
   <Card title="Messages API" icon="code" href="/api-reference/messages">
     POST /v1/messages reference

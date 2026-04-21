@@ -1,0 +1,33 @@
+---
+title: Claude Code
+description: Use orchid01 as your coding model in Claude Code
+---
+
+> Use orchid01 as your coding model in Claude Code
+
+Claude Code supports custom Anthropic-compatible endpoints. Point it at Orchid to use orchid01 for finance-aware code generation and analysis.
+
+## Setup
+
+1. Set your environment variables before starting Claude Code:
+
+```bash
+export ANTHROPIC_BASE_URL="https://llm.orchid.ac/v1"
+export ANTHROPIC_API_KEY="orchid-your-key-here"
+```
+
+2. Run Claude Code as normal — it will route through Orchid automatically.
+
+## Usage
+
+Once configured, Claude Code will use orchid01 via Orchid's `/v1/messages` endpoint. All chat and agentic workflows will route through the Orchid API.
+
+<Info>
+  orchid01 is particularly useful in Claude Code for finance-related codebases — analysing quantitative models, parsing financial data structures, and working with SEC filing parsers.
+</Info>
+
+<Note>
+  Tool use and image blocks are not supported on `/v1/messages` in the current version. Text-only and agentic coding workflows are fully supported.
+</Note>
+
+For **Cursor** or other flows that expect the **OpenAI** API, use the [Cursor integration](/integrations/cursor) with `/v1/chat/completions` instead.

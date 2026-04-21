@@ -69,4 +69,4 @@ agent = create_react_agent(llm, [get_filing])
 result = agent.invoke({"messages": [("user", "Get Apple's latest 10-K")]})
 ```
 
-No Orchid-specific graph API — standard OpenAI-style chat completions under the hood. If you need the **Anthropic Messages** wire format or **Claude Code** routing, use the [Anthropic SDK](/integrations/anthropic) against [`/v1/messages`](/api-reference/messages) instead of `ChatOpenAI`.
+No Orchid-specific graph API — standard OpenAI-style chat completions under the hood. If you need the **Anthropic Messages** wire format, use [`/v1/messages`](/api-reference/messages); for **Claude Code**, see [Claude Code](/integrations/claude-code) instead of `ChatOpenAI`.
