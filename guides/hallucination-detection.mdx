@@ -1,13 +1,13 @@
 ---
 title: Hallucination Detection
-description: Response grounding scores on every API call
+description: Optional post-reply grounding judge and scores on orchid01
 ---
 
 ## Overview
 
-Every non-streaming orchid01 response includes a grounding score — a measure of how well the model's answer is supported by the documents you provided in the context.
+On **non-streaming** [`/v1/chat/completions`](/api-reference/chat-completions) requests, you can opt in to a **post-reply grounding judge** by setting **`orchid.dehallucinate`** to **`true`**. On **[`/v1/messages`](/api-reference/messages)**, send **`x-orchid-dehallucinate: true`**.
 
-This runs automatically when `dehallucinate: true` (the default) and the response contains financial figures.
+By default **`dehallucinate` is `false`** — the judge does not run unless you enable it. When it runs and enough document context is present, the response includes a grounding score: how well the model's answer is supported by the materials you provided.
 
 ## How it works
 
@@ -21,9 +21,23 @@ Model response                       → checked against context
 
 If a response contains a financial figure that doesn't appear in the provided context, it is flagged as a potentially unsupported claim.
 
+## Enabling the check
+
+**Chat completions** — set `dehallucinate` to `true` in the `orchid` object:
+
+```python
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=[...],
+    extra_body={"orchid": {"dehallucinate": True}},
+)
+```
+
+**Messages API** — send header `x-orchid-dehallucinate: true` (see [Messages API](/api-reference/messages)).
+
 ## Reading the grounding score
 
-Every response includes an `orchid` metadata field:
+When the judge runs, the response includes an `orchid` metadata field:
 
 ```json
 {
@@ -49,9 +63,9 @@ Every response includes an `orchid` metadata field:
 
 The check returns `checked: false` (and a default score of `1.0`) when:
 
+- `dehallucinate` / `x-orchid-dehallucinate` was not enabled
 - The response contains no financial figures
 - The context is too short (under ~200 characters) — likely a bare question with no documents
-- `dehallucinate: false` was explicitly passed
 
 ```json
 {
@@ -63,9 +77,9 @@ The check returns `checked: false` (and a default score of `1.0`) when:
 }
 ```
 
-## Disabling the check
+## Leaving the judge off (default)
 
-Pass `dehallucinate: false` for speed-sensitive requests where you don't need grounding:
+The default is **`dehallucinate: false`** for lower latency when you do not need verification on that call:
 
 ```python
 response = client.chat.completions.create(
@@ -75,8 +89,10 @@ response = client.chat.completions.create(
 )
 ```
 
+Omitting `orchid` or omitting `dehallucinate` behaves like `false`.
+
 <Note>
-  The grounding check only runs on non-streaming requests — the full response must be available before it can be verified. Streaming responses always return `checked: false`.
+  The grounding judge only runs on **non-streaming** requests — the full reply must be available before verification. Streaming responses return `checked: false` for this path.
 </Note>
 
 ## Best practice

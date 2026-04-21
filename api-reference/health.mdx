@@ -1,0 +1,26 @@
+---
+title: Health
+description: GET /health — service status
+---
+
+## Endpoint
+
+Use the **host root** (not under `/v1`):
+
+```
+GET https://llm.orchid.ac/health
+```
+
+Local:
+
+```
+GET http://127.0.0.1:8000/health
+```
+
+No API key is required for a basic liveness check unless your deployment gates it.
+
+## Response
+
+Returns JSON describing database and AI cluster (or equivalent) checks. Exact fields depend on deployment; use this endpoint for load balancers and monitoring.
+
+If your environment uses a different path, align with your internal `DEPLOY.md` or infrastructure config.

@@ -5,40 +5,43 @@ description: "orchid01 — the finance-native LLM API"
 
 ## Welcome
 
-orchid01 is an OpenAI-compatible LLM built for hedge funds and institutional investors. Private, compliant, and grounded in your documents.
+orchid01 is a finance-native LLM for hedge funds and institutional investors. The gateway is **OpenAI-compatible** (`/v1/chat/completions`, `/v1/models`, …) and **Anthropic-compatible** (`POST /v1/messages`) so you can use either SDK family with the same Orchid key and **`/v1`** base URL.
 
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="rocket" href="/getting-started/quickstart">
     Make your first API call in minutes
   </Card>
   <Card title="Authentication" icon="key" href="/getting-started/authentication">
-    Get your API key and connect
+    Base URL, Bearer, x-api-key, and anthropic-version
   </Card>
   <Card title="Models" icon="cpu" href="/getting-started/models">
     orchid01 standard and thinking modes
   </Card>
   <Card title="API Reference" icon="code" href="/api-reference/chat-completions">
-    Full endpoint documentation
+    Chat completions, Messages, models, rate limits
   </Card>
 </CardGroup>
 
 ## Key features
 
 <CardGroup cols={3}>
-  <Card title="OpenAI-compatible" icon="plug">
-    Works with any OpenAI SDK. Change one URL, nothing else.
+  <Card title="OpenAI-compatible" icon="plug" href="/api-reference/chat-completions">
+    Chat completions, streaming, and tools with the OpenAI SDKs
+  </Card>
+  <Card title="Anthropic Messages" icon="comments" href="/api-reference/messages">
+    Same model via `POST /v1/messages` for Anthropic SDK and Claude Code
   </Card>
   <Card title="Thinking mode" icon="brain" href="/guides/thinking-mode">
     Deep reasoning for complex multi-step analysis
   </Card>
   <Card title="Grounding scores" icon="shield-check" href="/guides/hallucination-detection">
-    Every response scored against your documents
+    Optional post-reply judge when you enable dehallucinate
   </Card>
   <Card title="Audit webhooks" icon="webhook" href="/guides/webhooks">
     Logs written to your own infrastructure
   </Card>
   <Card title="Tool calling" icon="wrench" href="/guides/tool-calling">
-    Connect to SEC EDGAR, Bloomberg, and more
+    Connect to SEC EDGAR, Bloomberg, and more (chat completions)
   </Card>
   <Card title="Zero data retention" icon="lock">
     Your prompts are never stored on third-party infrastructure
@@ -51,4 +54,4 @@ orchid01 is an OpenAI-compatible LLM built for hedge funds and institutional inv
 https://llm.orchid.ac/v1
 ```
 
-Get your API key at [app.orchid.ac](https://app.orchid.ac).
+Local development often uses `http://127.0.0.1:8000/v1`. Get your API key at [app.orchid.ac](https://app.orchid.ac). Connection details: [Authentication](/getting-started/authentication).

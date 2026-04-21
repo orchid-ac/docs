@@ -5,7 +5,7 @@ description: Connect orchid01 to your data sources and workflows
 
 ## Overview
 
-orchid01 supports OpenAI-compatible tool calling. Define tools using JSON Schema, pass them in the request, and the model returns structured tool calls when it needs to use them.
+orchid01 supports OpenAI-compatible tool calling on **`POST /v1/chat/completions`** only. Define tools using JSON Schema, pass them in the request, and the model returns structured tool calls when it needs to use them. The Anthropic **[`/v1/messages`](/api-reference/messages)** façade does not support tool-use blocks yet — route tool workflows through chat completions.
 
 This works with any tool definition you'd use with OpenAI — including MCP tools, LangChain tools, and custom functions.
 

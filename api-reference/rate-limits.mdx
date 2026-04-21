@@ -1,0 +1,38 @@
+---
+title: Rate limits
+description: Request limits and 429 behaviour for the Orchid LLM API
+---
+
+## Limits
+
+Limits apply **per Orchid API key**.
+
+| Limit | Value |
+|--------|--------|
+| Sustained throughput | **60 requests per minute (RPM)** |
+| Burst | **100** requests |
+
+These apply across OpenAI-compatible and Anthropic-compatible routes served by the same gateway (for example `/v1/chat/completions` and `/v1/messages`).
+
+## When you are rate limited
+
+You may receive **`429 Too Many Requests`** with an OpenAI-compatible error body, for example:
+
+```json
+{
+  "error": {
+    "message": "Rate limit exceeded",
+    "type": "rate_limit_error",
+    "code": "rate_limit_exceeded"
+  }
+}
+```
+
+The response may include a **`Retry-After`** header (seconds). If present, wait at least that long before retrying.
+
+## Retry behaviour
+
+- Prefer **exponential backoff** with jitter when you do not receive `Retry-After`.
+- Retries are safe for **read-only** or **idempotent** operations; for long completions, consider reducing `max_tokens` or splitting work instead of hammering the same limit.
+
+See also [Authentication](/getting-started/authentication) for other HTTP errors.

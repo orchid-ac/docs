@@ -1,0 +1,54 @@
+---
+title: Messages
+description: POST /v1/messages (Anthropic-compatible)
+---
+
+## Endpoint
+
+```
+POST https://llm.orchid.ac/v1/messages
+```
+
+Anthropic-compatible **Messages** API. The same upstream model path is used as for [`/v1/chat/completions`](/api-reference/chat-completions); only the request/response wire format differs.
+
+**Format:** Errors use the same **OpenAI-compatible** `error` object as chat completions (`message`, `type`, `code`). The Anthropic SDK may not map these into native Anthropic error types — inspect **raw HTTP** responses or logs when debugging failures.
+
+## Request
+
+### Headers
+
+| Header | Value |
+|--------|--------|
+| `x-api-key` | Your Orchid key (`orchid-…`) — typical for the Anthropic SDK |
+| `anthropic-version` | **`2023-06-01`** (required) |
+| `Content-Type` | `application/json` |
+
+`Authorization: Bearer <orchid-…>` is also accepted with the same key.
+
+### Optional Orchid headers
+
+There is **no** `orchid` object in the JSON body on this route. Use headers instead:
+
+| Header | Values |
+|--------|--------|
+| `x-orchid-dehallucinate` | `true` or `false` — set `true` to run the post-reply grounding judge on **non-streaming** completions |
+| `x-orchid-thinking` | `true` or `false` |
+| `x-orchid-thinking-effort` | `none`, `low`, `medium`, or `high` |
+
+### Body
+
+Use the standard Anthropic **Messages** request shape: `model`, `max_tokens`, `messages`, etc. The **`model`** field must be **`orchid01`** (see [GET /v1/models](/api-reference/models)).
+
+## Limitations
+
+- **Tool-use** and **image** content blocks are **not** supported on this façade yet. Use [`/v1/chat/completions`](/api-reference/chat-completions) for OpenAI-style tools and multimodal workflows.
+- For rate limits and `429` behaviour, see [Rate limits](/api-reference/rate-limits).
+
+## Authentication
+
+Full header and base URL reference: [Authentication](/getting-started/authentication).
+
+## Related
+
+- [Anthropic SDK integration](/integrations/anthropic) (Python and Claude Code)
+- [Chat completions](/api-reference/chat-completions) for `orchid` body options and tools

@@ -5,9 +5,9 @@ description: orchid01 standard and thinking modes
 
 ## orchid01
 
-orchid01 is Orchid's finance-native model. Use model id `orchid01` in all requests.
+orchid01 is Orchid's finance-native model. Use model id **`orchid01`** in all requests. The catalog is also available from [GET /v1/models](/api-reference/models) (aliases **`orchid`** / **`orchid01`** may be accepted in the body depending on version—prefer **`orchid01`**).
 
-There are two modes — standard and thinking — controlled via the `orchid` config object in the request body.
+There are two modes — standard and thinking — controlled via the **`orchid`** object on **`/v1/chat/completions`**, or via headers on **`/v1/messages`** (see below).
 
 ## Standard mode (default)
 
@@ -57,17 +57,18 @@ answer    = response.choices[0].message.content
   If you pass `max_tokens` below 16,000 with thinking enabled, Orchid automatically raises it to 16,000 and includes `max_tokens_adjusted: true` in the response metadata.
 </Info>
 
-## The `orchid` config object
+## The `orchid` config object (`/v1/chat/completions`)
 
-Pass an `orchid` key alongside standard OpenAI fields to control Orchid-specific behaviour:
+Pass an `orchid` key alongside standard OpenAI fields:
 
 ```json
 {
   "model": "orchid01",
   "messages": [...],
   "orchid": {
-    "thinking":      false,
-    "dehallucinate": true
+    "thinking":         false,
+    "thinking_effort":  "medium",
+    "dehallucinate":    false
   }
 }
 ```
@@ -75,11 +76,24 @@ Pass an `orchid` key alongside standard OpenAI fields to control Orchid-specific
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `thinking` | boolean | `false` | Enable deep reasoning mode |
-| `dehallucinate` | boolean | `true` | Run grounding check and return `hallucination_score` |
+| `thinking_effort` | string | — | `none`, `low`, `medium`, or `high` (with Fireworks reasoning) |
+| `dehallucinate` | boolean | `false` | Set `true` to run the grounding judge on non-streaming completions |
+
+## Messages API (`POST /v1/messages`)
+
+There is **no** `orchid` object in the JSON body. Use optional **headers** instead:
+
+| Header | Values |
+|--------|--------|
+| `x-orchid-dehallucinate` | `true` or `false` |
+| `x-orchid-thinking` | `true` or `false` |
+| `x-orchid-thinking-effort` | `none`, `low`, `medium`, or `high` |
+
+Tool-use and image content blocks are not supported on the Messages façade yet — use [`/v1/chat/completions`](/api-reference/chat-completions) for tools. Full route details: [Messages API](/api-reference/messages).
 
 ## Response metadata
 
-Every response includes an `orchid` field with grounding information:
+When the grounding judge runs, responses include an `orchid` field (shape may vary if the judge was not requested):
 
 ```json
 {
@@ -101,4 +115,4 @@ Every response includes an `orchid` field with grounding information:
 | `flagged_spans` | Specific claims that could not be verified |
 | `checked` | Whether the grounding check actually ran |
 
-The check runs when `dehallucinate: true` (default), the response contains financial figures, and sufficient context was provided. If skipped, `checked: false` and `score: 1.0`.
+The check runs when **`dehallucinate: true`** (chat) or **`x-orchid-dehallucinate: true`** (Messages), the response contains financial figures, and sufficient context was provided. If skipped, `checked: false` and `score: 1.0`.

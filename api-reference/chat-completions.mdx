@@ -37,10 +37,15 @@ All standard OpenAI chat completion fields are supported. Key fields:
 
 ### The `orchid` config object
 
+Optional body key **`orchid`** controls Orchid-specific behaviour on **`/v1/chat/completions`** only (not on [`/v1/messages`](/api-reference/messages)).
+
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `thinking` | boolean | `false` | Enable deep reasoning mode |
-| `dehallucinate` | boolean | `true` | Run grounding check |
+| `thinking` | boolean | `false` | Enable deep reasoning mode (Fireworks) |
+| `thinking_effort` | string | — | When thinking is on: `none`, `low`, `medium`, or `high` |
+| `dehallucinate` | boolean | `false` | Set `true` to run the post-reply grounding judge on **non-streaming** completions |
+
+See [Hallucination detection](/guides/hallucination-detection) and [Rate limits](/api-reference/rate-limits).
 
 ## Response
 
@@ -76,7 +81,9 @@ Standard OpenAI chat completion response, plus an `orchid` field:
 
 ## Error responses
 
-Errors follow the OpenAI error format:
+**Format:** Failures return an **OpenAI-compatible** JSON body with a top-level `error` object (`message`, `type`, `code`, `param`). The same shape is used for gateway errors across Orchid so OpenAI SDKs parse errors predictably.
+
+Errors follow that format, for example:
 
 ```json
 {
@@ -93,5 +100,5 @@ Errors follow the OpenAI error format:
 |--------|------|---------|
 | `400` | `invalid_request_error` | Malformed request body |
 | `401` | `authentication_error` | Invalid or missing API key |
-| `429` | `rate_limit_error` | Rate limit exceeded |
+| `429` | `rate_limit_error` | Rate limit exceeded — see [Rate limits](/api-reference/rate-limits) |
 | `502` | `upstream_error` | Upstream provider error |

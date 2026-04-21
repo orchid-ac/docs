@@ -1,17 +1,11 @@
 ---
 title: Authentication
-description: How to authenticate with the Orchid API
+description: API keys, base URLs, and headers for OpenAI- and Anthropic-compatible routes
 ---
 
-## API Keys
+## API keys
 
-All requests require a bearer token in the `Authorization` header.
-
-```bash
-Authorization: Bearer orchid-your-key-here
-```
-
-Get your API key from [app.orchid.ac](https://app.orchid.ac) under **Settings → API Keys**.
+Get your key from [app.orchid.ac](https://app.orchid.ac) under **Settings → API Keys**. The secret string is the same whether you call OpenAI-style or Anthropic-style endpoints.
 
 <Warning>
   Your API key is secret. Never commit it to version control or expose it in client-side code. Use environment variables.
@@ -19,15 +13,39 @@ Get your API key from [app.orchid.ac](https://app.orchid.ac) under **Settings �
 
 ## Connection settings
 
+Use one **base URL** (including **`/v1`**) for every route below.
+
 | Setting | Value |
 |---------|-------|
-| Base URL | `https://llm.orchid.ac/v1` |
-| Auth header | `Authorization: Bearer <your-key>` |
-| Model | `orchid01` |
+| **Base URL (production)** | `https://llm.orchid.ac/v1` |
+| **Base URL (local)** | `http://127.0.0.1:8000/v1` |
+| **Model** | `orchid01` — the JSON `model` field must be this catalog id (see [GET /v1/models](/api-reference/models)) |
+| **Responses** | Successful bodies and webhooks expose `model: "orchid01"` (not upstream provider ids) |
 
 <Note>
-  The base URL must include `/v1`. Using `https://llm.orchid.ac` alone (without `/v1`) will return a 404.
+  The base URL must end with **`/v1`**. Calling the host without `/v1` (for example `https://llm.orchid.ac` only) returns **404**.
 </Note>
+
+### OpenAI-compatible routes (`/v1/chat/completions`, `/v1/models`, …)
+
+| Header | Value |
+|--------|--------|
+| `Authorization` | `Bearer <orchid-…>` |
+| `Content-Type` | `application/json` (for POST bodies) |
+
+The same string many clients call `api_key` is sent as the Bearer token.
+
+### Anthropic-compatible route (`POST /v1/messages`)
+
+| Header | Value |
+|--------|--------|
+| `x-api-key` | `<orchid-…>` (Anthropic-style; typical for the Anthropic SDK) |
+| `anthropic-version` | `2023-06-01` (**required** on `/v1/messages`) |
+| `Content-Type` | `application/json` |
+
+`Authorization: Bearer <orchid-…>` is also accepted with the **same** Orchid key if your client prefers it.
+
+See [Messages API](/api-reference/messages) for optional Orchid headers (`x-orchid-dehallucinate`, `x-orchid-thinking`, …) on this route.
 
 ## Environment variables
 
@@ -60,7 +78,7 @@ const client = new OpenAI({
 
 ## Error responses
 
-Authentication errors return an OpenAI-compatible error object:
+Most gateway errors (including auth and rate limits) return an **OpenAI-compatible** JSON object with an `error` field (`message`, `type`, `code`). That applies to **`/v1/chat/completions`** and typically to **`/v1/messages`** as well, so Anthropic SDK users may see failures that do not deserialize as native Anthropic error types—use logs or raw HTTP bodies when debugging.
 
 ```json
 {
@@ -76,3 +94,13 @@ Authentication errors return an OpenAI-compatible error object:
 |--------|---------|
 | `401` | Missing or invalid API key |
 | `403` | Key exists but is inactive |
+
+## Troubleshooting
+
+| Issue | What to check |
+|--------|----------------|
+| **401** | `Authorization: Bearer …` or `x-api-key` present and matches an active key in the dashboard. |
+| **404 on “base URL”** | URL must include **`/v1`** (for example `https://llm.orchid.ac/v1`, not the bare host). |
+| **Model errors** | Body field **`model`** must be **`orchid01`** (confirm with [GET /v1/models](/api-reference/models)). |
+| **Messages / Anthropic SDK** | Send **`anthropic-version: 2023-06-01`**. Without it, the request is rejected. |
+| **Timeouts** | Large `max_tokens` or slow upstream—retry with backoff or reduce output size. See [Rate limits](/api-reference/rate-limits). |

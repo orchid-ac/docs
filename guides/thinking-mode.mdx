@@ -11,7 +11,7 @@ Use thinking mode for tasks that require multi-step analysis — complex covenan
 
 ## Enabling thinking
 
-Pass `thinking: true` in the `orchid` config object:
+Pass `thinking: true` in the `orchid` config object on **`/v1/chat/completions`**. Optionally set **`thinking_effort`** to `none`, `low`, `medium`, or `high` (Fireworks reasoning). On **[`/v1/messages`](/api-reference/messages)**, use headers **`x-orchid-thinking`** and **`x-orchid-thinking-effort`** instead — see [Models](/getting-started/models).
 
 ```python
 response = client.chat.completions.create(
