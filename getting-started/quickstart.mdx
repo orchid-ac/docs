@@ -8,7 +8,7 @@ description: Make your first orchid01 API call in minutes
 Get your API key from the [Orchid dashboard](https://app.orchid.ac) under **Settings → API Keys**.
 
 <Info>
-  The API is **OpenAI-compatible** (`/v1/chat/completions`, `/v1/models`, …) and **Anthropic-compatible** (`POST /v1/messages`). Use your Orchid key and a base URL that includes **`/v1`**. See [Authentication](/getting-started/authentication) for headers (`Bearer`, `x-api-key`, `anthropic-version`) and local vs production hosts.
+  The API is **OpenAI-compatible** (`/v1/chat/completions`, `/v1/models`, …) and **Anthropic-compatible** (`POST /v1/messages`). Use your Orchid key. **OpenAI-style** clients use `https://llm.orchid.ac/v1`. **Anthropic** clients and [Claude Code](/integrations/claude-code) use the **host only** — `https://llm.orchid.ac` — with **no** `/v1` on the base URL (the SDK appends `/v1/messages`). See [Authentication](/getting-started/authentication) for headers and troubleshooting.
 </Info>
 
 ## Your first call
@@ -57,29 +57,9 @@ curl -s https://llm.orchid.ac/v1/chat/completions \
 
 </CodeGroup>
 
-## Anthropic Messages (Python)
+## Anthropic Messages (Claude Code and Python SDK)
 
-Use the official Anthropic client with the same **`/v1`** base URL and **`model: "orchid01"`**. Route reference: [Messages API](/api-reference/messages). For **Claude Code**, see [Claude Code](/integrations/claude-code).
-
-```bash
-pip install anthropic
-```
-
-```python
-import anthropic
-
-client = anthropic.Anthropic(
-    base_url="https://llm.orchid.ac/v1",
-    api_key="orchid-your-key-here",
-)
-
-msg = client.messages.create(
-    model="orchid01",
-    max_tokens=1024,
-    messages=[{"role": "user", "content": "Hello"}],
-)
-print(msg.content[0].text)
-```
+For **`POST /v1/messages`**, including **Claude Code** and the official Anthropic Python client, the base URL must be **`https://llm.orchid.ac` without** `/v1` — the SDK appends `/v1/messages`. Setup, environment variables, and code samples: [Claude Code](/integrations/claude-code). Route reference: [Messages API](/api-reference/messages).
 
 Tool-use and images on **`/v1/messages`** are not supported yet — use **chat completions** for tools ([Tool calling](/guides/tool-calling)).
 

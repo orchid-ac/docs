@@ -3,31 +3,59 @@ title: Claude Code
 description: Use orchid01 as your coding model in Claude Code
 ---
 
-> Use orchid01 as your coding model in Claude Code
+Claude Code supports custom Anthropic-compatible endpoints. Point it at Orchid to use **orchid01** for finance-aware code generation and analysis.
 
-Claude Code supports custom Anthropic-compatible endpoints. Point it at Orchid to use orchid01 for finance-aware code generation and analysis.
+<Note>
+  **Base URL is different from OpenAI-style clients.** The OpenAI SDK and Cursor use `https://llm.orchid.ac/v1` because they call paths such as `/v1/chat/completions` under that prefix. The **Anthropic** Python and TypeScript SDKs (and Claude Code) append **`/v1/messages`** to whatever you set as the base URL. That base must be the **host only** — `https://llm.orchid.ac` — not `.../v1`, or the client will request `.../v1/v1/messages` and you will get **404** (see [Troubleshooting](/getting-started/authentication#troubleshooting)).
+</Note>
 
 ## Setup
 
-1. Set your environment variables before starting Claude Code:
+1. Set two environment variables before starting Claude Code:
 
 ```bash
-export ANTHROPIC_BASE_URL="https://llm.orchid.ac/v1"
+export ANTHROPIC_BASE_URL="https://llm.orchid.ac"
 export ANTHROPIC_API_KEY="orchid-your-key-here"
 ```
 
-2. Run Claude Code as normal — it will route through Orchid automatically.
+2. Run Claude Code as normal — it will route through Orchid’s **`POST /v1/messages`** endpoint.
 
 ## Usage
 
-Once configured, Claude Code will use orchid01 via Orchid's `/v1/messages` endpoint. All chat and agentic workflows will route through the Orchid API.
+Once configured, Claude Code uses **orchid01** via Orchid’s `/v1/messages` endpoint. Chat and agentic workflows route through the Orchid API.
 
 <Info>
   orchid01 is particularly useful in Claude Code for finance-related codebases — analysing quantitative models, parsing financial data structures, and working with SEC filing parsers.
 </Info>
 
 <Note>
-  Tool use and image blocks are not supported on `/v1/messages` in the current version. Text-only and agentic coding workflows are fully supported.
+  Tool use and image blocks are not supported on `/v1/messages` in the current version. Text-only and agentic coding workflows are fully supported. For **tool calling** with JSON schema, use [`/v1/chat/completions`](/guides/tool-calling) instead.
 </Note>
 
-For **Cursor** or other flows that expect the **OpenAI** API, use the [Cursor integration](/integrations/cursor) with `/v1/chat/completions` instead.
+## Anthropic Python SDK
+
+The same `base_url` rule applies in code: **no** `/v1` on the base URL (the client appends `/v1/messages`).
+
+```bash
+pip install anthropic
+```
+
+```python
+import anthropic
+
+client = anthropic.Anthropic(
+    base_url="https://llm.orchid.ac",
+    api_key="orchid-your-key-here",
+)
+
+msg = client.messages.create(
+    model="orchid01",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Hello"}],
+)
+print(msg.content[0].text)
+```
+
+Route and headers: [Messages API](/api-reference/messages) · Keys and `anthropic-version`: [Authentication](/getting-started/authentication).
+
+For **Cursor** or any flow that expects the **OpenAI** API, use the [Cursor integration](/integrations/cursor) with `https://llm.orchid.ac/v1` and `/v1/chat/completions`.

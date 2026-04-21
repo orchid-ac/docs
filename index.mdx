@@ -5,7 +5,7 @@ description: "orchid01 — the finance-native LLM API"
 
 ## Welcome
 
-orchid01 is a finance-native LLM for hedge funds and institutional investors. The gateway is **OpenAI-compatible** (`/v1/chat/completions`, `/v1/models`, …) and **Anthropic-compatible** (`POST /v1/messages`) so you can use either SDK family with the same Orchid key and **`/v1`** base URL.
+orchid01 is a finance-native LLM for hedge funds and institutional investors. The gateway is **OpenAI-compatible** (`/v1/chat/completions`, `/v1/models`, …) and **Anthropic-compatible** (`POST /v1/messages`) so you can use either SDK family with the same Orchid key. OpenAI-style clients use a base URL ending in **`/v1`**; the Anthropic SDK and Claude Code use the **host only** (no `/v1`) so the client can append `/v1/messages` — see [Authentication](/getting-started/authentication#connection-settings).
 
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="rocket" href="/getting-started/quickstart">
@@ -50,8 +50,7 @@ orchid01 is a finance-native LLM for hedge funds and institutional investors. Th
 
 ## Base URL
 
-```
-https://llm.orchid.ac/v1
-```
+- **OpenAI SDK, Cursor, `curl` to** `/v1/...` — `https://llm.orchid.ac/v1`
+- **Anthropic SDK, Claude Code** — `https://llm.orchid.ac` (the SDK appends `/v1/messages`; do not add `/v1` to the base URL or requests hit `/v1/v1/messages` and return **404**)
 
-Local development often uses `http://127.0.0.1:8000/v1`. Get your API key at [app.orchid.ac](https://app.orchid.ac). Connection details: [Authentication](/getting-started/authentication).
+Local development often uses `http://127.0.0.1:8000/v1` (OpenAI-style) and `http://127.0.0.1:8000` (Anthropic). Get your API key at [app.orchid.ac](https://app.orchid.ac). Full details: [Authentication](/getting-started/authentication).

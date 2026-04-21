@@ -27,4 +27,8 @@ Once configured, select `orchid01` from the model dropdown in Cursor. All chat a
   Features that rely on OpenAI-specific tooling may not apply. Chat completion and Composer workflows are fully supported.
 </Note>
 
+<Note>
+  **Thinking mode and `reasoning_content`:** When [`orchid.thinking`](/guides/thinking-mode) is enabled, **`reasoning_content`** is an extended field on delta and message objects in the stream and final message. Whether Cursor shows this as a visible thinking panel depends on Cursor’s own support for **`reasoning_content` over custom base URLs** — that is client behaviour, not a limitation of the Orchid API. To confirm reasoning is present, inspect the raw response with `curl` or the OpenAI Python SDK.
+</Note>
+
 For **Claude Code** or other flows that expect the Anthropic **Messages** API, use the [Claude Code integration](/integrations/claude-code) with **`/v1/messages`** instead of Cursor’s OpenAI override.

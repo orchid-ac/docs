@@ -13,18 +13,32 @@ Get your key from [app.orchid.ac](https://app.orchid.ac) under **Settings → AP
 
 ## Connection settings
 
-Use one **base URL** (including **`/v1`**) for every route below.
-
 | Setting | Value |
 |---------|-------|
-| **Base URL (production)** | `https://llm.orchid.ac/v1` |
-| **Base URL (local)** | `http://127.0.0.1:8000/v1` |
 | **Model** | `orchid01` — the JSON `model` field must be this catalog id (see [GET /v1/models](/api-reference/models)) |
 | **Responses** | Successful bodies and webhooks expose `model: "orchid01"` (not upstream provider ids) |
 
+### Base URL (OpenAI-compatible SDKs and HTTP)
+
+Use this for the **OpenAI** Python/JS SDK, Cursor, and any client that calls paths such as `/v1/chat/completions` under a configurable prefix.
+
+| | Production | Local |
+|---|------------|--------|
+| **Base URL** | `https://llm.orchid.ac/v1` | `http://127.0.0.1:8000/v1` |
+
 <Note>
-  The base URL must end with **`/v1`**. Calling the host without `/v1` (for example `https://llm.orchid.ac` only) returns **404**.
+  The OpenAI-style base URL **must** include **`/v1`**. If you use only the host (for example `https://llm.orchid.ac` with no path), requests that expect the `/v1/...` prefix will not resolve correctly.
 </Note>
+
+### Base URL (Anthropic SDK and Claude Code)
+
+For the **Anthropic** Python/TypeScript SDK and **Claude Code** (`ANTHROPIC_BASE_URL`), set the base to the **host with no `/v1` suffix**:
+
+| | Production | Local |
+|---|------------|--------|
+| **Base URL** | `https://llm.orchid.ac` | `http://127.0.0.1:8000` |
+
+The SDK appends **`/v1/messages`** to this value, so the effective endpoint is `https://llm.orchid.ac/v1/messages`. If you mistakenly set `https://llm.orchid.ac/v1` as the Anthropic `base_url`, the client will call **`/v1/v1/messages`** and return **404**.
 
 ### OpenAI-compatible routes (`/v1/chat/completions`, `/v1/models`, …)
 
@@ -53,7 +67,7 @@ See [Messages API](/api-reference/messages) for optional Orchid headers (`x-orch
 export ORCHID_API_KEY="orchid-your-key-here"
 ```
 
-Then in code:
+Then in code (OpenAI client — **include `/v1`** in `base_url` / `baseURL`):
 
 <CodeGroup>
 
@@ -100,7 +114,8 @@ Most gateway errors (including auth and rate limits) return an **OpenAI-compatib
 | Issue | What to check |
 |--------|----------------|
 | **401** | `Authorization: Bearer …` or `x-api-key` present and matches an active key in the dashboard. |
-| **404 on “base URL”** | URL must include **`/v1`** (for example `https://llm.orchid.ac/v1`, not the bare host). |
-| **Model errors** | Body field **`model`** must be **`orchid01`** (confirm with [GET /v1/models](/api-reference/models)). |
+| **404, response body** `{"detail":"Not Found"}` **on** `/v1/messages` | The Anthropic `base_url` (or `ANTHROPIC_BASE_URL`) **includes an extra** `/v1`. Use `https://llm.orchid.ac` with **no** `/v1` so the client does not call `/v1/v1/messages`. |
+| **404 on OpenAI “base URL”** | OpenAI-style URL must include **`/v1`** (for example `https://llm.orchid.ac/v1`, not the bare host) for clients that do not add `/v1` themselves. |
+| **Model errors** | Body field **`model`** must be **`orchid01`** (see [GET /v1/models](/api-reference/models)). |
 | **Messages / Anthropic SDK** | Send **`anthropic-version: 2023-06-01`**. Without it, the request is rejected. |
 | **Timeouts** | Large `max_tokens` or slow upstream—retry with backoff or reduce output size. See [Rate limits](/api-reference/rate-limits). |
