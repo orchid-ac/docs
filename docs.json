@@ -71,6 +71,7 @@
               "integrations/langchain",
               "integrations/cursor",
               "integrations/claude-code",
+              "integrations/vscode-continue",
               "integrations/vercel-ai-sdk",
               "integrations/litellm"
             ]

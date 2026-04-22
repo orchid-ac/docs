@@ -1,0 +1,73 @@
+# VS Code (Continue)
+
+> Use orchid01 as your coding assistant in VS Code
+
+Continue is an open-source AI coding extension for VS Code. Point it at Orchid to use orchid01 for finance-aware code generation and analysis.
+
+## Setup
+
+1. Open the Extensions panel (**Cmd+Shift+X**), search for **Continue**, and click Install.
+
+2. Open your VS Code settings JSON (**Cmd+Shift+P** → "Preferences: Open User Settings JSON") and add:
+
+```json
+"http.proxySupport": "off"
+```
+
+Restart VS Code after saving.
+
+3. Click the **Continue icon** in the left sidebar to open the Continue panel.
+
+4. Click the **gear icon** in the top right of the Continue panel → **Configs** → click the **gear icon** next to **Local Config**.
+
+5. Replace the contents with:
+
+```yaml
+name: Local Config
+version: 1.0.0
+schema: v1
+models:
+  - name: orchid01
+    provider: openai
+    model: orchid01
+    apiBase: https://llm.orchid.ac/v1
+    apiKey: orchid-your-key-here
+    useResponsesApi: false
+    roles:
+      - chat
+      - edit
+      - apply
+```
+
+6. Press **Cmd+L** to open the chat panel and select `orchid01` from the model dropdown.
+
+## Usage
+
+Once configured, select `orchid01` from the model dropdown in the Continue panel. All chat and inline edit requests will route through the Orchid API.
+
+<Info>
+orchid01 is particularly useful in VS Code for finance-related codebases — analysing quantitative models, parsing financial data structures, and working with SEC filing parsers.
+</Info>
+
+<Note>
+`http.proxySupport: off` disables VS Code's proxy agent for all extensions. If you are on a corporate network that requires a proxy, check with your IT team before applying this setting.
+</Note>
+
+<Warning>
+Continue is a community extension. For institutional or compliance-sensitive environments, consider [Cursor](/integrations/cursor) or [Claude Code](/integrations/claude-code) instead — both are established vendor products with enterprise support.
+</Warning>
+
+## Troubleshooting
+
+| Issue | Fix |
+|---|---|
+| Connection error | Add `"http.proxySupport": "off"` to VS Code settings and restart |
+| `config.yaml not found in AST tracker` | Install the **YAML** extension by Red Hat from the marketplace |
+| Model not found | Confirm `model: orchid01` exactly — no aliases |
+| Auth error | Check your API key starts with `orchid-` and is active |
+
+## Related
+
+* [Cursor](/integrations/cursor) — native custom endpoint support, no extensions needed
+* [Claude Code](/integrations/claude-code) — Anthropic-native agentic coding
+* [Authentication](/getting-started/authentication)
