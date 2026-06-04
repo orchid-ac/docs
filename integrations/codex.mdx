@@ -1,0 +1,65 @@
+---
+title: Codex CLI
+description: Use orchid01 as your coding model in OpenAI Codex CLI
+---
+
+OpenAI's [Codex CLI](https://github.com/openai/codex) supports custom model providers through a TOML config file. Point it at Orchid to use **orchid01** for finance-aware code generation and analysis.
+
+<Note>
+  Codex CLI uses the **OpenAI Responses API** wire format (`wire_api = "responses"`). Orchid exposes this at `https://llm.orchid.ac/v1`, the same base URL used by other OpenAI-compatible clients.
+</Note>
+
+## Setup
+
+**1. Add the Orchid provider to `~/.codex/config.toml`:**
+
+```toml
+[model_providers.orchid]
+name    = "Orchid"
+base_url = "https://llm.orchid.ac/v1"
+wire_api = "responses"
+env_key  = "ORCHID_API_KEY"
+```
+
+**2. Export your Orchid API key:**
+
+```bash
+export ORCHID_API_KEY="orchid-your-key-here"
+```
+
+**3. Run Codex with the Orchid provider:**
+
+```bash
+codex --provider orchid --model orchid01
+```
+
+## Usage
+
+Once configured, all Codex CLI requests route through Orchid's API using the `orchid01` model. You can pass the flags on every invocation or set `provider` and `model` as defaults in `~/.codex/config.toml`:
+
+```toml
+provider = "orchid"
+model    = "orchid01"
+
+[model_providers.orchid]
+name     = "Orchid"
+base_url = "https://llm.orchid.ac/v1"
+wire_api = "responses"
+env_key  = "ORCHID_API_KEY"
+```
+
+With those defaults in place, just run:
+
+```bash
+codex "explain this trading strategy"
+```
+
+<Info>
+  orchid01 is particularly useful in Codex CLI for finance-related codebases — analysing quantitative models, parsing financial data structures, and working with SEC filing parsers.
+</Info>
+
+<Note>
+  Tool use and multi-turn agentic flows are supported through the Responses API. If you need the OpenAI Chat Completions format instead, see the [Python](/integrations/python) or [JavaScript](/integrations/javascript) SDK integrations which target `/v1/chat/completions` directly.
+</Note>
+
+For **Claude Code** or flows that expect the Anthropic **Messages** API, use the [Claude Code integration](/integrations/claude-code) with `https://llm.orchid.ac` (host only, no `/v1`).
