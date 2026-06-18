@@ -5,9 +5,48 @@ description: Connect orchid01 to your data sources and workflows
 
 ## Overview
 
-orchid01 supports OpenAI-compatible tool calling on **`POST /v1/chat/completions`** only. Define tools using JSON Schema, pass them in the request, and the model returns structured tool calls when it needs to use them. The Anthropic **[`/v1/messages`](/api-reference/messages)** façade does not support tool-use blocks yet — route tool workflows through chat completions.
+There are two kinds of tool use on orchid01:
+
+- **Built-in tools** (`orchid-finance`) — run automatically on every request, on all three endpoints ([chat completions](/api-reference/chat-completions), [messages](/api-reference/messages), [responses](/api-reference/responses)). No setup required. See [Built-in tools](#built-in-tools-orchid-finance) below.
+- **Your own tools** — defined with JSON Schema and passed in the request. Supported on **[`/v1/chat/completions`](/api-reference/chat-completions)** and **[`/v1/responses`](/api-reference/responses)**. The Anthropic **[`/v1/messages`](/api-reference/messages)** façade does not support tool-use content blocks yet — route custom tool workflows through one of the other two endpoints.
 
 This works with any tool definition you'd use with OpenAI — including MCP tools, LangChain tools, and custom functions.
+
+<Note>
+  `stream: true` is silently overridden to a non-streamed response whenever a tool call happens mid-response — built-in or your own — on any of the three endpoints. The model has to finish its tool-call loop before it can return a response, so there's nothing to stream until that's done.
+</Note>
+
+## Built-in tools (orchid-finance)
+
+orchid01 ships with a built-in tool suite, `orchid-finance`, that the model can call on its own to ground its answers — for example pulling live filing data — without you defining or passing any `tools`. This runs automatically on every request, including ones that pass no `tools` array at all.
+
+### MCP audit fields
+
+Every response includes an `orchid` block with audit fields describing what the built-in tool layer did:
+
+```json
+{
+  "orchid": {
+    "mcp_server":     "orchid-finance",
+    "mcp_iterations": 2,
+    "mcp_tool_calls": [
+      {
+        "tool":   "get_sec_filing",
+        "args":   { "ticker": "AAPL", "form_type": "10-K" },
+        "result": "Apple Inc. 10-K filed 2025-11-01 (preview, truncated)..."
+      }
+    ]
+  }
+}
+```
+
+| Field | Description |
+|-------|--------------|
+| `mcp_server` | Which tool server handled the call (e.g. `orchid-finance`) |
+| `mcp_iterations` | Number of tool-call rounds the model took before responding |
+| `mcp_tool_calls` | List of tools called, their arguments, and a preview of each result |
+
+These fields are always present, separate from any `tools` you pass yourself and from the `dehallucinate`/`regenerate` fields described in [Hallucination detection](/guides/hallucination-detection).
 
 ## Basic example
 
@@ -78,9 +117,9 @@ if response.choices[0].message.tool_calls:
     print(final.choices[0].message.content)
 ```
 
-## MCP tools
+## Your own MCP tools
 
-orchid01 works with MCP (Model Context Protocol) tools. Your MCP server runs client-side — translate its tool definitions into JSON Schema format and pass them in the request as shown above.
+orchid01 also works with MCP (Model Context Protocol) tools you bring yourself — this is separate from the built-in `orchid-finance` suite above. Your MCP server runs client-side — translate its tool definitions into JSON Schema format and pass them in the request as shown above.
 
 Popular finance MCP servers that work with orchid01:
 

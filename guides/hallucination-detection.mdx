@@ -1,13 +1,20 @@
 ---
 title: Hallucination Detection
-description: Optional post-reply grounding judge and scores on orchid01
+description: Optional post-reply grounding judge, scoring, and auto-correction on orchid01
 ---
 
 ## Overview
 
-On **non-streaming** [`/v1/chat/completions`](/api-reference/chat-completions) requests, you can opt in to a **post-reply grounding judge** by setting **`orchid.dehallucinate`** to **`true`**. On **[`/v1/messages`](/api-reference/messages)**, send **`x-orchid-dehallucinate: true`**.
+On **non-streaming** requests, you can opt in to a **post-reply grounding judge** by setting:
+
+- **`orchid.dehallucinate`** to **`true`** — [`/v1/chat/completions`](/api-reference/chat-completions) and [`/v1/responses`](/api-reference/responses) (body field)
+- **`x-orchid-dehallucinate: true`** — [`/v1/messages`](/api-reference/messages) (header)
 
 By default **`dehallucinate` is `false`** — the judge does not run unless you enable it. When it runs and enough document context is present, the response includes a grounding score: how well the model's answer is supported by the materials you provided.
+
+The judge checks **all claims** in the response — figures, dates, names, comparisons, and other factual assertions — not just numerical financial figures.
+
+Want flagged claims fixed automatically instead of just reported? See [Auto-correcting with `regenerate`](#auto-correcting-with-regenerate) below.
 
 ## How it works
 
@@ -19,7 +26,7 @@ Last user message                    → question
 Model response                       → checked against context
 ```
 
-If a response contains a financial figure that doesn't appear in the provided context, it is flagged as a potentially unsupported claim.
+Any claim that doesn't appear in the provided context can be flagged as a potentially unsupported claim — for example a revenue figure that doesn't match the filing, a date that doesn't match the document, or a company name that wasn't mentioned in the source material.
 
 ## Enabling the check
 
@@ -31,6 +38,19 @@ response = client.chat.completions.create(
     messages=[...],
     extra_body={"orchid": {"dehallucinate": True}},
 )
+```
+
+**Responses** — same `orchid` body field as chat completions (see [Responses](/api-reference/responses)):
+
+```bash
+curl -s https://llm.orchid.ac/v1/responses \
+  -H "Authorization: Bearer orchid-your-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "orchid01",
+    "messages": [...],
+    "orchid": {"dehallucinate": true}
+  }'
 ```
 
 **Messages API** — send header `x-orchid-dehallucinate: true` (see [Messages API](/api-reference/messages)).
@@ -56,22 +76,82 @@ When the judge runs, the response includes an `orchid` metadata field:
 |-------|-------------|
 | `grounded` | `true` if no unsupported claims were found |
 | `score` | 0.0–1.0. Higher is better. 1.0 = fully grounded |
-| `flagged_spans` | List of specific text spans that could not be verified |
+| `flagged_spans` | List of specific text spans that could not be verified — of any claim type, not just figures |
 | `checked` | Whether the check actually ran |
+
+## Auto-correcting with `regenerate`
+
+`regenerate` goes a step further than `dehallucinate`: instead of only reporting unsupported claims, Orchid attempts to fix them in the response text itself.
+
+- **`orchid.regenerate`** to **`true`** — chat completions and responses (body field)
+- **`x-orchid-regenerate: true`** — messages (header)
+
+`regenerate: true` **implies `dehallucinate: true`** — you don't need to set both.
+
+```python
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=[...],
+    extra_body={"orchid": {"regenerate": True}},
+)
+```
+
+For each flagged span:
+
+- If it can be corrected using the context you provided, the span is **silently replaced** in the response text with the corrected version.
+- If it can't be grounded in the provided context at all, an inline **`[⚠ unverified]`** marker is appended after the span in the response text instead.
+
+The `orchid` block includes a `span_fixes` array describing what changed:
+
+```json
+{
+  "orchid": {
+    "dehallucinate_requested": true,
+    "regenerate_requested":    true,
+    "grounded":                false,
+    "score":                   0.82,
+    "checked":                 true,
+    "span_fixes": [
+      {
+        "original": "Q3 revenue was $4.2B",
+        "action":   "replaced",
+        "fixed_to": "Q3 revenue was $3.9B"
+      },
+      {
+        "original": "the company expects this trend to continue into next year",
+        "action":   "flagged",
+        "fixed_to": null
+      }
+    ]
+  }
+}
+```
+
+| Field | Description |
+|-------|--------------|
+| `original` | The span as the model first wrote it |
+| `action` | `replaced` if corrected in place, `flagged` if it could not be grounded |
+| `fixed_to` | The corrected text, or `null` when `action` is `flagged` |
+
+When `action` is `flagged`, the response text itself contains the marker inline (for example `...continue into next year [⚠ unverified]`), so the caveat is visible even if you don't inspect `span_fixes`.
+
+<Note>
+  `regenerate` only runs wherever `dehallucinate` runs — **non-streaming** requests on chat completions, messages, and responses.
+</Note>
 
 ## When the check is skipped
 
 The check returns `checked: false` (and a default score of `1.0`) when:
 
-- `dehallucinate` / `x-orchid-dehallucinate` was not enabled
-- The response contains no financial figures
+- `dehallucinate` / `x-orchid-dehallucinate` (and `regenerate` / `x-orchid-regenerate`) were not enabled
+- The response contains no checkable claims
 - The context is too short (under ~200 characters) — likely a bare question with no documents
 
 ```json
 {
   "orchid": {
     "checked": false,
-    "reason":  "no financial figures in response",
+    "reason":  "no checkable claims in response",
     "score":   1.0
   }
 }
@@ -89,7 +169,7 @@ response = client.chat.completions.create(
 )
 ```
 
-Omitting `orchid` or omitting `dehallucinate` behaves like `false`.
+Omitting `orchid`, or omitting `dehallucinate`/`regenerate`, behaves like `false`.
 
 <Note>
   The grounding judge only runs on **non-streaming** requests — the full reply must be available before verification. Streaming responses return `checked: false` for this path.

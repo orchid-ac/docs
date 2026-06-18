@@ -5,7 +5,7 @@ description: "orchid01 — the finance-native LLM API"
 
 ## Welcome
 
-orchid01 is a finance-native LLM for hedge funds and institutional investors. The gateway is **OpenAI-compatible** (`/v1/chat/completions`, `/v1/models`, …) and **Anthropic-compatible** (`POST /v1/messages`) so you can use either SDK family with the same Orchid key. OpenAI-style clients use a base URL ending in **`/v1`**; the Anthropic SDK and Claude Code use the **host only** (no `/v1`) so the client can append `/v1/messages` — see [Authentication](/getting-started/authentication#connection-settings).
+orchid01 is a finance-native LLM for hedge funds and institutional investors. The gateway is **OpenAI-compatible** (`/v1/chat/completions`, `/v1/responses`, `/v1/models`, …) and **Anthropic-compatible** (`POST /v1/messages`) so you can use either SDK family with the same Orchid key. OpenAI-style clients use a base URL ending in **`/v1`**; the Anthropic SDK and Claude Code use the **host only** (no `/v1`) so the client can append `/v1/messages` — see [Authentication](/getting-started/authentication#connection-settings).
 
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="rocket" href="/getting-started/quickstart">
@@ -26,7 +26,7 @@ orchid01 is a finance-native LLM for hedge funds and institutional investors. Th
 
 <CardGroup cols={3}>
   <Card title="OpenAI-compatible" icon="plug" href="/api-reference/chat-completions">
-    Chat completions, streaming, and tools with the OpenAI SDKs
+    Chat completions and the [Responses API](/api-reference/responses), with streaming and tools
   </Card>
   <Card title="Anthropic Messages" icon="comments" href="/api-reference/messages">
     Same model via `POST /v1/messages` (Anthropic client or Claude Code)
@@ -35,13 +35,13 @@ orchid01 is a finance-native LLM for hedge funds and institutional investors. Th
     Deep reasoning for complex multi-step analysis
   </Card>
   <Card title="Grounding scores" icon="shield-check" href="/guides/hallucination-detection">
-    Optional post-reply judge when you enable dehallucinate
+    Optional post-reply judge — enable `regenerate` to auto-correct flagged claims
   </Card>
   <Card title="Audit webhooks" icon="webhook" href="/guides/webhooks">
     Logs written to your own infrastructure
   </Card>
   <Card title="Tool calling" icon="wrench" href="/guides/tool-calling">
-    Connect to SEC EDGAR, Bloomberg, and more (chat completions)
+    Built-in finance tools run automatically; bring your own via chat completions or responses
   </Card>
   <Card title="Zero data retention" icon="lock">
     Your prompts are never stored on third-party infrastructure

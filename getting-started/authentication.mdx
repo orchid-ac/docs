@@ -40,7 +40,7 @@ For the **Anthropic** Python/TypeScript SDK and **Claude Code** (`ANTHROPIC_BASE
 
 The SDK appends **`/v1/messages`** to this value, so the effective endpoint is `https://llm.orchid.ac/v1/messages`. If you mistakenly set `https://llm.orchid.ac/v1` as the Anthropic `base_url`, the client will call **`/v1/v1/messages`** and return **404**.
 
-### OpenAI-compatible routes (`/v1/chat/completions`, `/v1/models`, …)
+### OpenAI-compatible routes (`/v1/chat/completions`, `/v1/responses`, `/v1/models`, …)
 
 | Header | Value |
 |--------|--------|

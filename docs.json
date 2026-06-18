@@ -86,6 +86,7 @@
             "group": "Endpoints",
             "pages": [
               "api-reference/chat-completions",
+              "api-reference/responses",
               "api-reference/messages",
               "api-reference/models",
               "api-reference/rate-limits",

@@ -8,7 +8,7 @@ description: Make your first orchid01 API call in minutes
 Get your API key from the [Orchid dashboard](https://app.orchid.ac) under **Settings → API Keys**.
 
 <Info>
-  The API is **OpenAI-compatible** (`/v1/chat/completions`, `/v1/models`, …) and **Anthropic-compatible** (`POST /v1/messages`). Use your Orchid key. **OpenAI-style** clients use `https://llm.orchid.ac/v1`. **Anthropic** clients and [Claude Code](/integrations/claude-code) use the **host only** — `https://llm.orchid.ac` — with **no** `/v1` on the base URL (the SDK appends `/v1/messages`). See [Authentication](/getting-started/authentication) for headers and troubleshooting.
+  The API is **OpenAI-compatible** (`/v1/chat/completions`, `/v1/responses`, `/v1/models`, …) and **Anthropic-compatible** (`POST /v1/messages`). Use your Orchid key. **OpenAI-style** clients use `https://llm.orchid.ac/v1`. **Anthropic** clients and [Claude Code](/integrations/claude-code) use the **host only** — `https://llm.orchid.ac` — with **no** `/v1` on the base URL (the SDK appends `/v1/messages`). See [Authentication](/getting-started/authentication) for headers and troubleshooting.
 </Info>
 
 ## Your first call
@@ -61,7 +61,7 @@ curl -s https://llm.orchid.ac/v1/chat/completions \
 
 For **`POST /v1/messages`**, including **Claude Code** and the official Anthropic Python client, the base URL must be **`https://llm.orchid.ac` without** `/v1` — the SDK appends `/v1/messages`. Setup, environment variables, and code samples: [Claude Code](/integrations/claude-code). Route reference: [Messages API](/api-reference/messages).
 
-Tool-use and images on **`/v1/messages`** are not supported yet — use **chat completions** for tools ([Tool calling](/guides/tool-calling)).
+User-defined tool-use and images on **`/v1/messages`** are not supported yet — use **chat completions** or **[responses](/api-reference/responses)** for tools ([Tool calling](/guides/tool-calling)). The built-in finance tool suite still runs automatically on every endpoint, including Messages.
 
 ## Streaming
 
@@ -106,6 +106,9 @@ for await (const chunk of stream) {
   </Card>
   <Card title="Messages API" icon="code" href="/api-reference/messages">
     POST /v1/messages reference
+  </Card>
+  <Card title="Responses API" icon="route" href="/api-reference/responses">
+    POST /v1/responses — server-side conversation history
   </Card>
   <Card title="Thinking Mode" icon="brain" href="/guides/thinking-mode">
     Deep reasoning for complex financial analysis

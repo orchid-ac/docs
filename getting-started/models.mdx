@@ -57,9 +57,9 @@ answer    = response.choices[0].message.content
   If you pass `max_tokens` below 16,000 with thinking enabled, Orchid automatically raises it to 16,000 and includes `max_tokens_adjusted: true` in the response metadata.
 </Info>
 
-## The `orchid` config object (`/v1/chat/completions`)
+## The `orchid` config object (`/v1/chat/completions` and `/v1/responses`)
 
-Pass an `orchid` key alongside standard OpenAI fields:
+Pass an `orchid` key alongside standard OpenAI fields — the field is identical on both endpoints (see [Responses](/api-reference/responses)):
 
 ```json
 {
@@ -68,7 +68,8 @@ Pass an `orchid` key alongside standard OpenAI fields:
   "orchid": {
     "thinking":         false,
     "thinking_effort":  "medium",
-    "dehallucinate":    false
+    "dehallucinate":    false,
+    "regenerate":       false
   }
 }
 ```
@@ -78,6 +79,7 @@ Pass an `orchid` key alongside standard OpenAI fields:
 | `thinking` | boolean | `false` | Enable deep reasoning mode |
 | `thinking_effort` | string | — | `none`, `low`, `medium`, or `high` (with Fireworks reasoning) |
 | `dehallucinate` | boolean | `false` | Set `true` to run the grounding judge on non-streaming completions |
+| `regenerate` | boolean | `false` | Set `true` to auto-correct unsupported claims where possible. Implies `dehallucinate: true`. |
 
 ## Messages API (`POST /v1/messages`)
 
@@ -86,19 +88,23 @@ There is **no** `orchid` object in the JSON body. Use optional **headers** inste
 | Header | Values |
 |--------|--------|
 | `x-orchid-dehallucinate` | `true` or `false` |
+| `x-orchid-regenerate` | `true` or `false` — implies `x-orchid-dehallucinate: true` |
 | `x-orchid-thinking` | `true` or `false` |
 | `x-orchid-thinking-effort` | `none`, `low`, `medium`, or `high` |
 
-Tool-use and image content blocks are not supported on the Messages façade yet — use [`/v1/chat/completions`](/api-reference/chat-completions) for tools. Full route details: [Messages API](/api-reference/messages).
+User-defined tool-use and image content blocks are not supported on the Messages façade yet — use [`/v1/chat/completions`](/api-reference/chat-completions) or [`/v1/responses`](/api-reference/responses) for those. The built-in `orchid-finance` tool suite still runs automatically on every endpoint, including Messages — see [Tool calling](/guides/tool-calling). Full route details: [Messages API](/api-reference/messages).
 
 ## Response metadata
 
-When the grounding judge runs, responses include an `orchid` field (shape may vary if the judge was not requested):
+Every response includes an `orchid` field — the `mcp_*` audit fields are always present, and the grounding fields appear with their documented values when the judge ran:
 
 ```json
 {
   "choices": [...],
   "orchid": {
+    "mcp_server":              "orchid-finance",
+    "mcp_iterations":          1,
+    "mcp_tool_calls":          [],
     "dehallucinate_requested": true,
     "grounded":                true,
     "score":                   0.97,
@@ -110,9 +116,11 @@ When the grounding judge runs, responses include an `orchid` field (shape may va
 
 | Field | Description |
 |-------|-------------|
+| `mcp_server` / `mcp_iterations` / `mcp_tool_calls` | Built-in tool-use audit trail — see [Tool calling](/guides/tool-calling#mcp-audit-fields) |
 | `grounded` | Whether all claims are supported by provided context |
 | `score` | Confidence score 0.0–1.0 (1.0 = fully grounded) |
 | `flagged_spans` | Specific claims that could not be verified |
 | `checked` | Whether the grounding check actually ran |
+| `span_fixes` | Present when `regenerate` ran — see [Hallucination detection](/guides/hallucination-detection#auto-correcting-with-regenerate) |
 
-The check runs when **`dehallucinate: true`** (chat) or **`x-orchid-dehallucinate: true`** (Messages), the response contains financial figures, and sufficient context was provided. If skipped, `checked: false` and `score: 1.0`.
+The grounding check runs when **`dehallucinate`/`regenerate`** (chat, responses) or **`x-orchid-dehallucinate`/`x-orchid-regenerate`** (Messages) is `true`, the response contains checkable claims, and sufficient context was provided. If skipped, `checked: false` and `score: 1.0`. Full details: [Hallucination detection](/guides/hallucination-detection).

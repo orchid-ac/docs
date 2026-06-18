@@ -44,8 +44,13 @@ Optional body key **`orchid`** controls Orchid-specific behaviour on **`/v1/chat
 | `thinking` | boolean | `false` | Enable deep reasoning mode (Fireworks) |
 | `thinking_effort` | string | — | When thinking is on: `none`, `low`, `medium`, or `high` |
 | `dehallucinate` | boolean | `false` | Set `true` to run the post-reply grounding judge on **non-streaming** completions |
+| `regenerate` | boolean | `false` | Set `true` to auto-correct unsupported claims where possible. Implies `dehallucinate: true`. |
 
 See [Hallucination detection](/guides/hallucination-detection) and [Rate limits](/api-reference/rate-limits).
+
+<Note>
+  The built-in `orchid-finance` tool suite runs automatically on every request (see [Tool calling](/guides/tool-calling)). If it — or a `tools` array you passed — triggers a tool call, `stream: true` is overridden to a non-streamed response: the model must finish its tool-call loop before it can return anything.
+</Note>
 
 ## Response
 
@@ -70,6 +75,9 @@ Standard OpenAI chat completion response, plus an `orchid` field:
     "total_tokens":      1620
   },
   "orchid": {
+    "mcp_server":              "orchid-finance",
+    "mcp_iterations":          1,
+    "mcp_tool_calls":          [],
     "dehallucinate_requested": true,
     "grounded":                true,
     "score":                   0.97,
@@ -78,6 +86,8 @@ Standard OpenAI chat completion response, plus an `orchid` field:
   }
 }
 ```
+
+`mcp_server`, `mcp_iterations`, and `mcp_tool_calls` are always present — see [Tool calling](/guides/tool-calling#mcp-audit-fields). The `dehallucinate_requested`, `grounded`, `score`, `flagged_spans`, and `checked` fields only appear with their documented values when `dehallucinate` (or `regenerate`) was enabled — see [Hallucination detection](/guides/hallucination-detection).
 
 ## Error responses
 
@@ -102,3 +112,9 @@ Errors follow that format, for example:
 | `401` | `authentication_error` | Invalid or missing API key |
 | `429` | `rate_limit_error` | Rate limit exceeded — see [Rate limits](/api-reference/rate-limits) |
 | `502` | `upstream_error` | Upstream provider error |
+
+## Related
+
+- [Responses](/api-reference/responses) — same body shape, with server-side conversation history via `previous_response_id`
+- [Tool calling](/guides/tool-calling) — built-in tools, your own tools, and MCP audit fields
+- [Hallucination detection](/guides/hallucination-detection) — `dehallucinate` and `regenerate`

@@ -1,0 +1,110 @@
+---
+title: Responses
+description: POST /v1/responses (OpenAI Responses API-compatible)
+---
+
+## Endpoint
+
+```
+POST https://llm.orchid.ac/v1/responses
+```
+
+OpenAI **Responses API**-compatible. Intended for agentic / multi-turn workflows: the server stores each turn and lets you chain the next call to it with **`previous_response_id`**, instead of you resending the full message history yourself.
+
+This is the wire format [Codex CLI](/integrations/codex) uses (`wire_api = "responses"`).
+
+## Request
+
+### Headers
+
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Bearer <your-orchid-key>` |
+| `Content-Type` | `application/json` |
+
+### Body
+
+Same body as [`/v1/chat/completions`](/api-reference/chat-completions) (`model`, `messages`, `max_tokens`, `tools`, …), plus one addition:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `previous_response_id` | string | — | ID of a prior response on this endpoint. The server replays that conversation history server-side, so you only need to send the new turn in `messages`. |
+| `orchid` | object | — | Orchid-specific config — identical fields to chat completions (see below). |
+
+### The `orchid` config object
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `thinking` | boolean | `false` | Enable deep reasoning mode |
+| `thinking_effort` | string | — | When thinking is on: `none`, `low`, `medium`, or `high` |
+| `dehallucinate` | boolean | `false` | Run the post-reply grounding judge (non-streaming only) |
+| `regenerate` | boolean | `false` | Auto-correct unsupported claims where possible; implies `dehallucinate: true`. See [Hallucination detection](/guides/hallucination-detection). |
+
+## Response
+
+OpenAI Responses API shape rather than the chat completions shape — output lives in an **`output`** array, not `choices`:
+
+```json
+{
+  "id":     "resp_abc123",
+  "object": "response",
+  "model":  "orchid01",
+  "output": [
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        { "type": "output_text", "text": "According to the filing..." }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens":  1240,
+    "output_tokens": 380,
+    "total_tokens":  1620
+  },
+  "orchid": {
+    "mcp_server":              "orchid-finance",
+    "mcp_iterations":          1,
+    "mcp_tool_calls":          [],
+    "dehallucinate_requested": true,
+    "grounded":                true,
+    "score":                   0.97,
+    "flagged_spans":           [],
+    "checked":                 true
+  }
+}
+```
+
+Use the top-level **`id`** as `previous_response_id` in your next call to continue the conversation. The **`orchid`** block is the same shape used on [chat completions](/api-reference/chat-completions#response) and [messages](/api-reference/messages) — see [Tool calling](/guides/tool-calling#mcp-audit-fields) for the `mcp_*` fields and [Hallucination detection](/guides/hallucination-detection) for the grounding and `span_fixes` fields.
+
+## Behavior shared with the other endpoints
+
+- **Built-in tools** — the `orchid-finance` tool suite runs automatically here too, with no `tools` array required. See [Tool calling](/guides/tool-calling).
+- **Streaming** — `stream: true` is overridden to a non-streamed response whenever a tool call happens mid-response, same as chat completions.
+- **`regenerate`** — implies `dehallucinate: true`; corrected/flagged spans appear in `orchid.span_fixes`.
+
+## Differences from chat completions
+
+| | `/v1/chat/completions` | `/v1/responses` |
+|---|---|---|
+| History management | You resend full `messages` each call | Server replays history via `previous_response_id` |
+| Response shape | `choices[].message` | `output[].content` |
+| `orchid` block | Yes | Yes |
+| Streaming | Yes (disabled during tool calls) | Yes (disabled during tool calls) |
+| `orchid.*` config | Yes | Yes |
+
+<Warning>
+  There is currently no API to list, retrieve, or delete stored conversation history — `previous_response_id` is the only way to reference it. Avoid sending sensitive data you may later need to delete on demand.
+</Warning>
+
+## Error responses
+
+Same OpenAI-compatible `error` object as [chat completions](/api-reference/chat-completions#error-responses).
+
+## Related
+
+- [Codex CLI](/integrations/codex) — setup using this endpoint
+- [Chat completions](/api-reference/chat-completions) — the request body this endpoint extends
+- [Tool calling](/guides/tool-calling) — built-in tools and MCP audit fields
+- [Hallucination detection](/guides/hallucination-detection) — `dehallucinate` and `regenerate`
