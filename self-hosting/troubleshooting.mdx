@@ -1,0 +1,52 @@
+---
+title: "Troubleshooting"
+description: "Common issues with a self-hosted Zeno deployment, and what to check"
+---
+
+## "Connection failed" when testing in Settings
+
+<AccordionGroup>
+  <Accordion title="Check the Endpoint URL is reachable from your browser">
+    The **Test Connection** button (see [Connecting the Frontend](/self-hosting/connecting-the-frontend)) calls your endpoint directly from the browser, not from Orchid's servers. If your VM's firewall only allows traffic from specific IPs, make sure your own network is allowed through.
+  </Accordion>
+  <Accordion title="Check the API key matches">
+    The **API Key** field must be the `ANON_KEY` value `setup.sh` printed, not the `SERVICE_ROLE_KEY`. Re-run `./scripts/derive-keys.sh` from the `byo-db` repository if you're unsure which value you have.
+  </Accordion>
+  <Accordion title="Check TLS, if you've put a reverse proxy in front">
+    If you've followed [Production Hardening](/self-hosting/production-hardening) and added a reverse proxy, a misconfigured certificate will cause the connection test to fail. Confirm the endpoint loads cleanly in a browser first.
+  </Accordion>
+</AccordionGroup>
+
+## Authenticated requests fail with 401
+
+This almost always means your deployment can't verify session tokens — usually because the signing-key migration on Orchid's central project (see [Prerequisites](/self-hosting/prerequisites)) hasn't completed yet, or your `CENTRAL_JWKS_URL` was set before that migration finished. Confirm with your Orchid contact that the migration is live, then re-run `./setup.sh` to fetch the current key.
+
+## Conversations, automations, or dashboards list is empty after enabling
+
+If you can create a new conversation, automation, or dashboard but it doesn't show up afterward in its list, this is a known first-deployment issue, already handled by the deployment kit's setup script — but worth checking if you're running an older deployment. Re-run `./setup.sh` to ensure the latest version of the kit's database setup has been applied.
+
+## `setup.sh` fails partway through
+
+<AccordionGroup>
+  <Accordion title="\"Failed to fetch JWKS\"">
+    Your VM couldn't reach the `CENTRAL_JWKS_URL` you set. Confirm the URL is correct and that your VM has outbound network access to Orchid's central project.
+  </Accordion>
+  <Accordion title="A required variable is missing">
+    `setup.sh` checks for each required value in your `.env` file before doing anything and tells you exactly which one is missing. Fill it in and re-run.
+  </Accordion>
+  <Accordion title="Postgres never becomes healthy">
+    Usually a resource issue — check your VM has enough free memory and disk (see [Prerequisites](/self-hosting/prerequisites)). You can safely re-run `./setup.sh` after addressing it.
+  </Accordion>
+</AccordionGroup>
+
+## Still stuck
+
+Contact your Orchid representative with the exact error message and the step you were on — most issues are quick to diagnose with that information.
+
+## Next step
+
+<CardGroup cols={1}>
+  <Card title="FAQ" icon="circle-question" href="/self-hosting/faq">
+    Common questions about data, performance, and support
+  </Card>
+</CardGroup>

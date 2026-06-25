@@ -1,0 +1,79 @@
+---
+title: "Setup"
+description: "Deploy your self-hosted database and connect it to Zeno"
+---
+
+This walks through deploying `byo-db`, the self-hosted database kit, on your VM. Make sure you've covered [Prerequisites](/self-hosting/prerequisites) first — in particular, confirm with Orchid that your central project's signing key migration is complete before you begin.
+
+<Steps>
+  <Step title="Get the deployment kit">
+    Your Orchid contact provides access to the `byo-db` repository. Clone it onto your VM.
+
+    ```bash
+    git clone <byo-db-repository-url>
+    cd byo-db
+    ```
+  </Step>
+
+  <Step title="Configure your environment">
+    Copy the example environment file and fill it in.
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    Most values are credentials you generate yourself with `openssl`:
+
+    ```bash
+    openssl rand -hex 32
+    ```
+
+    Use this to generate a unique value for each of: `POSTGRES_PASSWORD`, `SECRET_KEY_BASE`, `VAULT_ENC_KEY`, `PG_META_CRYPTO_KEY`, `DASHBOARD_PASSWORD`, and `ZENO_APP_PASSWORD`. Set `CENTRAL_JWKS_URL` to the JWKS URL your Orchid contact gave you.
+
+    <Warning>
+      Never set `CENTRAL_JWKS_URL` to anything other than the public JWKS endpoint your Orchid contact provided, and never put Orchid's central signing secret anywhere in this file. The JWKS URL is public and safe to store in plain text — it can only verify signatures, not create them.
+    </Warning>
+  </Step>
+
+  <Step title="Generate your API keys">
+    Run the included script to generate the two opaque access keys your gateway uses:
+
+    ```bash
+    ./scripts/derive-keys.sh
+    ```
+
+    Paste the `ANON_KEY` and `SERVICE_ROLE_KEY` values it prints into your `.env` file.
+  </Step>
+
+  <Step title="Run setup">
+    ```bash
+    ./setup.sh
+    ```
+
+    This brings up your database, provisions Zeno's schema and access policies into it, fetches and applies your central project's public signing key, and starts the rest of the stack. It takes a few minutes the first time.
+  </Step>
+
+  <Step title="Hand off your connection details to Orchid">
+    When `setup.sh` finishes, it prints two values:
+
+    - A **backend connection string**, for Orchid to configure your Zeno backend instance against.
+    - A **frontend endpoint URL and API key**, for the org admin to enter in Zeno's UI (see [Connecting the Frontend](/self-hosting/connecting-the-frontend)).
+
+    Send the backend connection string to your Orchid contact — they'll configure your dedicated backend instance to use it. Keep the frontend values for the next step, which you do yourself.
+
+    <Note>
+      Only the backend connection string needs to go to Orchid. It's not a secret Orchid didn't already have a way to request — Orchid already operates your backend instance — but treat it the same way you'd treat any database credential in transit.
+    </Note>
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Connecting the Frontend" icon="plug" href="/self-hosting/connecting-the-frontend">
+    Point your Zeno UI at your new database
+  </Card>
+  <Card title="Production Hardening" icon="shield-check" href="/self-hosting/production-hardening">
+    TLS and backups before going live
+  </Card>
+</CardGroup>

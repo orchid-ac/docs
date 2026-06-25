@@ -1,0 +1,35 @@
+---
+title: "Production Hardening"
+description: "What the deployment kit doesn't handle for you, and what to do about it"
+---
+
+The setup in [Setup](/self-hosting/setup) gets a fully working deployment running, but it's deliberately minimal on two fronts that matter before real users rely on it. Both are your responsibility to handle — the deployment kit gives you a starting point for each, but doesn't automate either.
+
+## TLS
+
+By default, your deployment serves plain HTTP on the ports you exposed. That's fine for reaching it only from the VM itself, but **not safe to expose beyond that** — session tokens and your data would travel unencrypted.
+
+Put a reverse proxy with real TLS in front before opening this up to your network or the internet. The deployment kit vendors an example Caddy-based reverse-proxy configuration as a starting point (`supabase/docker-compose.caddy.yml` in the `byo-db` repository) — adapt it to your own domain and certificate setup.
+
+<Warning>
+  Don't point your Zeno frontend's **Endpoint URL** (see [Connecting the Frontend](/self-hosting/connecting-the-frontend)) at a plain-HTTP address reachable from outside your VM. Confirm TLS is in place first.
+</Warning>
+
+## Backups
+
+Your data lives in a single bind-mounted volume on the VM's disk. Nothing in the deployment kit backs this up automatically — that's your team's responsibility, using whatever backup process you already run for other infrastructure (volume snapshots, a scheduled `pg_dump`, or your VM provider's own disk-snapshot tooling).
+
+## Sizing and scaling
+
+The defaults in [Prerequisites](/self-hosting/prerequisites) cover a single organization's typical usage. If you expect heavy concurrent use, large file uploads for RAG, or long-running automations, plan for more disk and memory headroom — there's no built-in limit, but undersized infrastructure will surface as slow responses or failed uploads rather than a clear error.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Troubleshooting" icon="life-ring" href="/self-hosting/troubleshooting">
+    Common issues and what they mean
+  </Card>
+  <Card title="Updating" icon="arrows-rotate" href="/self-hosting/updating">
+    Keeping your deployment in sync over time
+  </Card>
+</CardGroup>

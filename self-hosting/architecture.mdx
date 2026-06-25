@@ -1,0 +1,56 @@
+---
+title: "Architecture"
+description: "The components behind self-hosted Zeno, and how authentication works across them"
+---
+
+## Components
+
+A self-hosted Zeno deployment has three moving parts:
+
+<CardGroup cols={3}>
+  <Card title="Your database" icon="database">
+    A self-hosted Postgres instance with an HTTP API layer in front of it, deployed via `byo-db` on a VM you control.
+  </Card>
+  <Card title="Zeno backend" icon="server">
+    Connects to your database directly over the Postgres wire protocol for all of its own reads and writes.
+  </Card>
+  <Card title="Zeno frontend" icon="window">
+    Runs in your users' browsers and talks to your database's HTTP API directly — a browser can't speak raw Postgres.
+  </Card>
+</CardGroup>
+
+The backend and the frontend reach the same database through two different protocols, because they have two different constraints: the backend is a trusted server process that can hold a direct database credential, while the frontend is untrusted code running in a browser and needs an HTTP layer in front of the database that can enforce row-level access control per request.
+
+That HTTP layer — request routing, the API gateway, and live-update subscriptions — is exactly what a self-hosted Supabase-compatible stack provides. `byo-db` deploys that stack, configures it with Zeno's own schema and access policies, and wires both the backend and frontend to point at it.
+
+## What stays central, and why
+
+Identity (who you are, whether your session is valid) and billing/usage metering always stay on Orchid's central infrastructure. This is a deliberate design choice, not a gap:
+
+- **Security**: a self-hosted deployment never receives anything that could be used to mint or forge a session for a *different* client. Only Orchid's central project can issue valid sessions; your deployment can only verify them.
+- **Simplicity**: you don't need to run or secure an authentication system, manage password resets, or handle session expiry — that's all handled centrally, the same way it is for every Zeno customer.
+
+No financial content — no conversation text, automation output, or uploaded file — is ever part of what stays central. Identity and billing are metadata about usage, not the substance of your analysis.
+
+## How authentication works across the split
+
+When a user logs into Zeno, Orchid's central identity service issues them a session token. That token travels with every request the frontend makes — including requests to *your* self-hosted database's HTTP layer. For your deployment to trust that token, it needs to verify the token's signature without being able to forge one itself.
+
+This is solved with **asymmetric signing**: Orchid's central project signs session tokens with a private key that never leaves Orchid's infrastructure. Your deployment is only ever given the corresponding *public* key, fetched from a standard, public JWKS endpoint. A public key can verify a signature but can't create a new one — so even if your deployment's configuration were somehow exposed, it couldn't be used to forge a valid session for any user, on your deployment or anyone else's.
+
+<Note>
+  This is why self-hosting requires Orchid's central project to be using modern (ES256) signing rather than a legacy shared-secret scheme. Your Orchid contact handles this as a one-time step before your first deployment — see [Prerequisites](/self-hosting/prerequisites).
+</Note>
+
+Once your deployment can verify a session token's signature, it enforces row-level access control per request — the same model Orchid's central database uses — so a user can only ever read or write the rows they actually own or collaborate on, exactly as they could before self-hosting.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Prerequisites" icon="server" href="/self-hosting/prerequisites">
+    What you need before you start
+  </Card>
+  <Card title="Setup" icon="rocket" href="/self-hosting/setup">
+    Step-by-step deployment walkthrough
+  </Card>
+</CardGroup>

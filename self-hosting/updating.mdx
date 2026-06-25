@@ -1,0 +1,30 @@
+---
+title: "Updating"
+description: "Keeping a self-hosted deployment in sync as Zeno evolves"
+---
+
+A self-hosted deployment isn't "set and forget" — a couple of things can require action on your end over time. Both are infrequent, and Orchid will reach out when either applies to you.
+
+## When Zeno's database schema changes
+
+As Zeno adds features, the schema your deployment was provisioned with can fall out of date. When this happens, Orchid will let you know and provide an updated version of the deployment kit's provisioning files. Pull the update and re-run `./setup.sh` from the `byo-db` repository to apply it.
+
+<Note>
+  Re-running `setup.sh` is safe — it only adds or updates schema and policy definitions, it doesn't drop or modify your existing data.
+</Note>
+
+## If Orchid rotates its central signing key
+
+In the rare event Orchid rotates the signing key your deployment uses to verify session tokens, your deployment needs to fetch the new public key. Re-run `./setup.sh` to do this — it re-fetches the current key from `CENTRAL_JWKS_URL` every time it runs.
+
+## Keeping the underlying stack current
+
+The self-hosted database stack itself receives periodic upstream security updates. Orchid will notify you if a re-sync is recommended, along with updated files to apply.
+
+## Next step
+
+<CardGroup cols={1}>
+  <Card title="FAQ" icon="circle-question" href="/self-hosting/faq">
+    Common questions about data, performance, and support
+  </Card>
+</CardGroup>

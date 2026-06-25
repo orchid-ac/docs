@@ -1,0 +1,29 @@
+---
+title: "FAQ"
+description: "Common questions about self-hosting Zeno"
+---
+
+<AccordionGroup>
+  <Accordion title="What data ever leaves my infrastructure?">
+    None of your content does. Conversations, automation runs, dashboards, uploaded files, RAG content, custom tools, and saved secrets all live in your own database and never touch Orchid's central infrastructure. The only thing that stays central is identity (session/login) and billing/usage metering — neither of which contains any of your financial content. See [Architecture](/self-hosting/architecture) for the full breakdown.
+  </Accordion>
+  <Accordion title="Can Orchid read my data?">
+    No — Orchid's central infrastructure never receives your conversation content, automation output, files, or tool configuration. Orchid's backend connects directly to your database to run the platform's logic, the same way it always has for every customer, but that connection runs on infrastructure you control and can audit or revoke.
+  </Accordion>
+  <Accordion title="What happens if we stop self-hosting?">
+    Your organization can switch the **Enabled** toggle off in Settings → Data Connection at any time, reverting to Orchid's default hosting. Your self-hosted database and its contents remain exactly as they were on your own infrastructure — nothing is automatically migrated or deleted in either direction.
+  </Accordion>
+  <Accordion title="Does self-hosting change performance?">
+    Latency depends on where your VM is hosted relative to Orchid's backend and your users. A well-sized deployment (see [Prerequisites](/self-hosting/prerequisites)) on infrastructure with good network proximity performs comparably to default hosting. Heavy concurrent usage or large file uploads benefit from more headroom than the minimum sizing.
+  </Accordion>
+  <Accordion title="What's the support model?">
+    Your Orchid contact remains your primary point of contact for anything Zeno-related, including issues with your self-hosted deployment. Infrastructure-level issues specific to your VM or network are your team's responsibility to diagnose, with Orchid's help interpreting any Zeno-side errors.
+  </Accordion>
+  <Accordion title="Can we run our backend instance fully on our own infrastructure too, not just the database?">
+    Not currently — self-hosting covers your database (and therefore your content). Orchid continues to operate the Zeno backend and frontend application itself, configured to connect to your database. Talk to your Orchid contact if a fully self-hosted backend is something you need.
+  </Accordion>
+</AccordionGroup>
+
+## Still have questions?
+
+Contact your Orchid representative, or see [Troubleshooting](/self-hosting/troubleshooting) for setup-specific issues.

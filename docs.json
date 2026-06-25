@@ -96,6 +96,35 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Self-Hosting",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "self-hosting/introduction",
+              "self-hosting/architecture"
+            ]
+          },
+          {
+            "group": "Deployment Guide",
+            "pages": [
+              "self-hosting/prerequisites",
+              "self-hosting/setup",
+              "self-hosting/connecting-the-frontend",
+              "self-hosting/production-hardening"
+            ]
+          },
+          {
+            "group": "Operations & Support",
+            "pages": [
+              "self-hosting/troubleshooting",
+              "self-hosting/updating",
+              "self-hosting/faq"
+            ]
+          }
+        ]
       }
     ],
     "global": {

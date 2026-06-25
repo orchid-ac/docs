@@ -1,0 +1,61 @@
+---
+title: "Self-Hosting Zeno"
+description: "Run Zeno against your own database for full data sovereignty"
+---
+
+## What is Zeno?
+
+Zeno is Orchid's agentic financial-analysis platform — chat-driven research, automations, dashboards, and tool-calling built for hedge funds and institutional investors. By default, Zeno runs on Orchid's central, multi-tenant infrastructure: convenient, but it means your conversations, automation outputs, and uploaded files live in a database Orchid operates alongside every other client's.
+
+**Self-hosting** removes that tradeoff. You deploy your own database — on your own VM, inside your own network — and Zeno's backend and frontend read and write to it instead of Orchid's central one. Every conversation, automation run, dashboard, uploaded file, and analysis result stays on infrastructure you control. Orchid never sees it.
+
+<Info>
+  This is sometimes called **"Bring Your Own Database" (BYO-DB)**. The two terms refer to the same capability.
+</Info>
+
+## Why this exists
+
+For a hedge fund, the content flowing through an analysis platform — positions, theses, model outputs, internal research — is the IP. Storing that on a vendor's shared infrastructure is a real concern, independent of how good that vendor's own security is. Self-hosting answers it directly: the data never leaves your infrastructure in the first place, so there's nothing to leak, breach, or subpoena from a third party.
+
+## What stays where
+
+<CardGroup cols={2}>
+  <Card title="Stays on your infrastructure" icon="database">
+    Conversations, messages, automations and their run history, dashboards, uploaded files, RAG content, custom tools, and saved secrets — all of it.
+  </Card>
+  <Card title="Stays with Orchid" icon="key">
+    Identity and session management (who you are, whether you're logged in) and billing/usage metering. No financial content passes through either.
+  </Card>
+</CardGroup>
+
+This split is deliberate, not a limitation: Zeno's frontend authenticates against Orchid's central identity service the same way it always has, then talks to *your* database for everything else. You get full content sovereignty without having to run your own auth system or worry about session security yourself.
+
+## How it works, at a glance
+
+```
+Your own infrastructure                    Orchid's central infrastructure
+┌─────────────────────────┐                ┌──────────────────────────┐
+│  Self-hosted database    │ <── content ── │  Zeno backend             │
+│  (your conversations,     │                │  Zeno frontend            │
+│   automations, files...)  │ <── content ── │  Identity & billing only  │
+└─────────────────────────┘                └──────────────────────────┘
+```
+
+The deployment kit that sets this up is called **`byo-db`** — a self-hosted, Postgres-backed stack that exposes the same HTTP interface Zeno's frontend already expects, pointed at a schema and access policies that mirror Zeno's own. Setting it up takes a VM, Docker, and the steps in the [Deployment Guide](/self-hosting/setup).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="route" href="/self-hosting/architecture">
+    The components, what talks to what, and the security model
+  </Card>
+  <Card title="Prerequisites" icon="server" href="/self-hosting/prerequisites">
+    What you need before you start a deployment
+  </Card>
+  <Card title="Setup" icon="rocket" href="/self-hosting/setup">
+    Step-by-step deployment walkthrough
+  </Card>
+  <Card title="FAQ" icon="circle-question" href="/self-hosting/faq">
+    Data, performance, and support questions answered plainly
+  </Card>
+</CardGroup>
