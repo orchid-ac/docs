@@ -28,7 +28,7 @@ This walks through deploying `byo-db`, the self-hosted database kit, on your VM.
     openssl rand -hex 32
     ```
 
-    Use this to generate a unique value for each of: `POSTGRES_PASSWORD`, `SECRET_KEY_BASE`, `VAULT_ENC_KEY`, `PG_META_CRYPTO_KEY`, `DASHBOARD_PASSWORD`, and `ZENO_APP_PASSWORD`. Set `CENTRAL_JWKS_URL` to the JWKS URL your Orchid contact gave you.
+    Use this to generate a unique value for each of: `POSTGRES_PASSWORD`, `SECRET_KEY_BASE`, `VAULT_ENC_KEY`, `PG_META_CRYPTO_KEY`, `DASHBOARD_PASSWORD`, `ZENO_APP_PASSWORD`, and `WEBHOOK_SIGNING_SECRET`. Set `CENTRAL_JWKS_URL` to the JWKS URL your Orchid contact gave you.
 
     <Warning>
       Never set `CENTRAL_JWKS_URL` to anything other than the public JWKS endpoint your Orchid contact provided, and never put Orchid's central signing secret anywhere in this file. The JWKS URL is public and safe to store in plain text — it can only verify signatures, not create them.
@@ -54,16 +54,32 @@ This walks through deploying `byo-db`, the self-hosted database kit, on your VM.
   </Step>
 
   <Step title="Hand off your connection details to Orchid">
-    When `setup.sh` finishes, it prints two values:
+    When `setup.sh` finishes, it prints three values:
 
     - A **backend connection string**, for Orchid to configure your Zeno backend instance against.
     - A **frontend endpoint URL and API key**, for the org admin to enter in Zeno's UI (see [Connecting the Frontend](/self-hosting/connecting-the-frontend)).
+    - A **webhook URL and signing secret**, for you to configure in your orchid01 dashboard (next step).
 
-    Send the backend connection string to your Orchid contact — they'll configure your dedicated backend instance to use it. Keep the frontend values for the next step, which you do yourself.
+    Send the backend connection string to your Orchid contact — they'll configure your dedicated backend instance to use it. The other two values you handle yourself.
 
     <Note>
-      Only the backend connection string needs to go to Orchid. It's not a secret Orchid didn't already have a way to request — Orchid already operates your backend instance — but treat it the same way you'd treat any database credential in transit.
+      Only the backend connection string needs to go to Orchid. Treat it the same way you'd treat any database credential in transit.
     </Note>
+  </Step>
+
+  <Step title="Configure the orchid01 webhook">
+    This step enables your LLM request audit logs to be written directly into your self-hosted database, so your usage data stays on your own infrastructure alongside everything else.
+
+    In the [orchid01 dashboard](https://app.orchid.ac), go to **Settings → API Keys**, open your key, and set:
+
+    - **Webhook URL**: the URL `setup.sh` printed (e.g. `http://your-vm:3001/webhook/llm-request`)
+    - **Signing secret**: the `WEBHOOK_SIGNING_SECRET` value from your `.env`
+
+    Orchid will then POST a signed audit payload to your deployment after every completed LLM request. Your deployment verifies the signature and writes the record into its local database — the content never touches Orchid's infrastructure.
+
+    <Info>
+      You can send a test payload from the orchid01 dashboard to confirm the webhook is reachable before going live.
+    </Info>
   </Step>
 </Steps>
 

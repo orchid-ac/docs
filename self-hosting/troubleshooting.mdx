@@ -39,6 +39,17 @@ If you can create a new conversation, automation, or dashboard but it doesn't sh
   </Accordion>
 </AccordionGroup>
 
+## Webhook not receiving events
+
+<AccordionGroup>
+  <Accordion title="Test payload from the orchid01 dashboard fails to deliver">
+    The webhook receiver (`webhook/`) runs as a separate container on port 3001 (or whatever `WEBHOOK_PORT` you set). Confirm the container is running (`docker ps | grep webhook`) and that port 3001 is reachable from the internet or wherever orchid01's servers are connecting from — the same firewall rules that apply to your PostgREST port apply here.
+  </Accordion>
+  <Accordion title="Payloads arrive but rows don't appear in llm_requests">
+    This almost always means a signature mismatch. The `WEBHOOK_SIGNING_SECRET` in your `.env` must be exactly the same value you entered as the signing secret in your orchid01 dashboard. Re-run `./setup.sh` after correcting either value to restart the receiver with the updated secret.
+  </Accordion>
+</AccordionGroup>
+
 ## Still stuck
 
 Contact your Orchid representative with the exact error message and the step you were on — most issues are quick to diagnose with that information.

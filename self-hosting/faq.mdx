@@ -5,7 +5,7 @@ description: "Common questions about self-hosting Zeno"
 
 <AccordionGroup>
   <Accordion title="What data ever leaves my infrastructure?">
-    None of your content does. Conversations, automation runs, dashboards, uploaded files, RAG content, custom tools, and saved secrets all live in your own database and never touch Orchid's central infrastructure. The only thing that stays central is identity (session/login) and billing/usage metering — neither of which contains any of your financial content. See [Architecture](/self-hosting/architecture) for the full breakdown.
+    None of your content does. Conversations, automation runs, dashboards, uploaded files, RAG content, custom tools, saved secrets, and LLM request audit logs (including prompts and responses) all live in your own database and never touch Orchid's central infrastructure. The only thing that stays central is identity (session/login) and billing/usage metering — neither of which contains any of your financial content. See [Architecture](/self-hosting/architecture) for the full breakdown.
   </Accordion>
   <Accordion title="Can Orchid read my data?">
     No — Orchid's central infrastructure never receives your conversation content, automation output, files, or tool configuration. Orchid's backend connects directly to your database to run the platform's logic, the same way it always has for every customer, but that connection runs on infrastructure you control and can audit or revoke.
