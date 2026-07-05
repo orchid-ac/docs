@@ -20,6 +20,57 @@ This works with any tool definition you'd use with OpenAI — including MCP tool
 
 orchid01 ships with a built-in tool suite, `orchid-finance`, that the model can call on its own to ground its answers — for example pulling live filing data — without you defining or passing any `tools`. This runs automatically on every request, including ones that pass no `tools` array at all.
 
+### Available built-in tools
+
+| Tool | Trigger | Description |
+|------|---------|-------------|
+| `parse_pdf` | Model decides, or ask explicitly | Parse one or more PDFs (URL or path) — extracts full text, tables as CSV URLs, and figure metadata |
+| `debate` | Model decides, or ask explicitly | Spawn three specialist agents with opposing viewpoints, run a structured multi-round debate, and produce a synthesis report |
+
+#### `debate` — multi-agent critical analysis
+
+The `debate` tool is designed to counter LLM sycophancy. When called, it:
+
+1. **Frames** the topic — one LLM call identifies the 3 most intellectually distinct expert viewpoints for the *specific* question (e.g. "Should we buy NVIDIA?" → GARP Investor / Deep Value Analyst / Platform Strategist — never hardcoded)
+2. **Debates** — agents argue in parallel rounds, each seeing all prior arguments from opponents
+3. **Synthesises** — a senior analyst pass produces structured agreements, disagreements, and a verdict
+
+orchid01 will call `debate` automatically when it judges a question warrants adversarial analysis, or you can ask explicitly: *"Debate whether NVIDIA is overvalued"* / *"Give me a critical multi-sided analysis of…"*
+
+**Parameters passed by the model:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `topic` | string | required | The question or thesis to debate |
+| `context` | string | — | Optional data, constraints, or background (e.g. current P/E, macro indicators) |
+| `rounds` | integer | `2` | Number of debate rounds (1–3). Each extra round adds 3 parallel agent calls where each agent responds to all prior arguments from all opponents |
+
+**Token billing:** All internal debate LLM calls are rolled up into the parent request's `usage` totals — you see one unified `prompt_tokens` / `completion_tokens` figure, not a separate entry per agent.
+
+**Example output in `mcp_tool_calls`:**
+
+```json
+{
+  "orchid": {
+    "mcp_server": "orchid-finance",
+    "mcp_iterations": 1,
+    "mcp_tool_calls": [
+      {
+        "tool": "debate",
+        "args": {
+          "topic": "Is NVIDIA overvalued at current prices?",
+          "context": "P/E ~45x, revenue growth 80% YoY, stock up 200% in 18 months",
+          "rounds": 2
+        },
+        "result_preview": "{\"topic\": \"Is NVIDIA overvalued...\", \"viewpoints\": [{\"role\": \"GARP Investor\"..."
+      }
+    ]
+  }
+}
+```
+
+The full debate result (viewpoints, per-agent round transcripts, key agreements/disagreements, synthesis, verdict) is returned in `result_preview` and injected into the model's context so it can summarise or quote from it in its final reply.
+
 ### MCP audit fields
 
 Every response includes an `orchid` block with audit fields describing what the built-in tool layer did:
