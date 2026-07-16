@@ -50,7 +50,8 @@
             "pages": [
               "getting-started/quickstart",
               "getting-started/authentication",
-              "getting-started/models"
+              "getting-started/models",
+              "getting-started/performance"
             ]
           },
           {

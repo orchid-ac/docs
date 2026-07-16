@@ -5,7 +5,7 @@ description: orchid01 standard and thinking modes
 
 ## orchid01
 
-orchid01 is Orchid's finance-native model. Use model id **`orchid01`** in all requests. The catalog is also available from [GET /v1/models](/api-reference/models).
+orchid01 is Orchid's finance-native model. Use model id **`orchid01`** in all requests. The catalog is also available from [GET /v1/models](/api-reference/models). See [Performance](/getting-started/performance) for benchmark results.
 
 There are two modes — standard and thinking — controlled via the **`orchid`** object on **`/v1/chat/completions`**, or via headers on **`/v1/messages`** (see below).
 
@@ -77,7 +77,7 @@ Pass an `orchid` key alongside standard OpenAI fields — the field is identical
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `thinking` | boolean | `false` | Enable deep reasoning mode |
-| `thinking_effort` | string | — | `none`, `low`, `medium`, or `high` (with Fireworks reasoning) |
+| `thinking_effort` | string | — | `none`, `low`, `medium`, or `high` |
 | `dehallucinate` | boolean | `false` | Set `true` to run the grounding judge on non-streaming completions |
 | `regenerate` | boolean | `false` | Set `true` to auto-correct unsupported claims where possible. Implies `dehallucinate: true`. |
 
