@@ -1,0 +1,112 @@
+---
+title: Installation
+description: Install the Orchid CLI on macOS, Linux and Windows
+---
+
+The Orchid CLI (`orchid`) is a terminal coding agent wired to Orchid's gateway (`llm.orchid.ac`, model `orchid01`) out of the box. Install it, paste an API key, start coding.
+
+## npm
+
+The fastest way to get started if you already have Node or Bun installed.
+
+```bash
+npm i -g @orchid-ac/cli
+orchid --version
+```
+
+<Info>
+  The umbrella package resolves the right platform binary automatically via an optional dependency. If that's ever unavailable, it falls back to downloading the matching archive directly and verifies it against the release's checksum manifest before installing anything.
+</Info>
+
+## macOS / Linux - install script
+
+A POSIX shell script that detects your platform, downloads the matching archive, verifies its checksum and installs to `~/.orchid/bin`.
+
+```bash
+# latest version
+curl -fsSL https://orchid.ac/install | bash
+
+# a specific version
+curl -fsSL https://orchid.ac/install | bash -s -- --version 0.1.0
+
+# don't touch my shell rc
+curl -fsSL https://orchid.ac/install | bash -s -- --no-modify-path
+```
+
+**Prerequisites:** `curl`, plus `tar` (Linux) or `unzip` (macOS), plus `sha256sum` or `shasum` for checksum verification.
+
+<Note>
+  On macOS, Gatekeeper may block the binary on first run until it's notarised. Right-click the binary → **Open**, or clear the quarantine flag: `xattr -d com.apple.quarantine ~/.orchid/bin/orchid`.
+</Note>
+
+## Windows - zero-dependency ZIP
+
+A self-contained folder you can run from anywhere - no installer, no admin rights.
+
+1. Download **`orchid-windows-x64.zip`** from the [Releases page](https://github.com/orchid-ac/orchid-cli/releases).
+2. Extract it to a folder of your choice, e.g. `C:\Tools\orchid`.
+3. Run it:
+
+   ```powershell
+   .\orchid.exe --version
+   ```
+
+To use `orchid` from any terminal, add the folder to your `PATH`:
+
+```powershell
+setx PATH "%PATH%;C:\Tools\orchid"
+```
+
+Open a new terminal afterwards for the change to take effect.
+
+<Note>
+  Windows SmartScreen may warn that the publisher is unrecognised until the binary is code-signed. Click **More info → Run anyway**.
+</Note>
+
+## Manual archive (macOS / Linux / Windows)
+
+Grab a self-contained archive from the [Releases page](https://github.com/orchid-ac/orchid-cli/releases) and run it in place:
+
+```bash
+# Linux
+tar -xzf orchid-linux-x64.tar.gz
+./orchid --version
+
+# macOS
+unzip orchid-darwin-arm64.zip
+./orchid --version
+```
+
+Each archive carries `orchid`, a bundled `rg` (ripgrep, for offline file search), `LICENSE` and `NOTICE` at the root. Add the extracted folder to your `PATH` to use `orchid` from anywhere:
+
+```bash
+export PATH="$PATH:/path/to/extracted/folder"   # add to ~/.bashrc or ~/.zshrc to persist
+```
+
+## Verifying a download
+
+Every release ships a `SHA256SUMS` manifest. The install script and npm postinstall check it automatically and refuse to install on a mismatch; to check a manual download yourself:
+
+```bash
+# Linux
+sha256sum -c SHA256SUMS 2>/dev/null | grep orchid-linux-x64
+
+# macOS
+shasum -a 256 -c SHA256SUMS 2>/dev/null | grep orchid-darwin-arm64
+```
+
+```powershell
+# Windows - compare against the matching line in SHA256SUMS
+Get-FileHash .\orchid-windows-x64.zip -Algorithm SHA256
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/cli/authentication">
+    Connect the CLI to your Orchid API key
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/getting-started/quickstart">
+    Make your first orchid01 API call
+  </Card>
+</CardGroup>

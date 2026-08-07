@@ -1,0 +1,89 @@
+---
+title: Authentication
+description: Connect the Orchid CLI to your API key
+---
+
+The Orchid CLI talks to `llm.orchid.ac` (model `orchid01`). To use it you need an Orchid API key from **[app.orchid.ac](https://app.orchid.ac) → Settings → API Keys**.
+
+<Info>
+  Not installed yet? See [Installation](/cli/installation) first.
+</Info>
+
+## First run - the connect dialog
+
+Launch the CLI in a terminal:
+
+```bash
+orchid
+```
+
+On a first run with no key set, Orchid opens its connect dialog with Orchid already selected at the top of the provider list. Paste your key and press **Enter** - Orchid checks it against the gateway and, if valid, stores it and drops you straight into the session. No restart, no config file to edit.
+
+If the key is rejected, the dialog tells you and stores nothing, so you can try again.
+
+## From the command line - `orchid auth login`
+
+To connect or reconnect without the first-run dialog:
+
+```bash
+orchid auth login
+```
+
+Choose **Orchid** at the top of the provider list and paste your key when prompted. The key is read without being echoed to the terminal, trimmed, then validated against the gateway exactly as in the dialog.
+
+```text
+✓ Orchid key saved.
+```
+
+## Headless and CI
+
+For servers, containers and CI, set the key in the environment and skip the dialog entirely:
+
+<CodeGroup>
+
+```bash bash / zsh
+export ORCHID_API_KEY=<your-key>
+```
+
+```powershell PowerShell
+$env:ORCHID_API_KEY = "<your-key>"
+```
+
+</CodeGroup>
+
+A non-interactive run (for example `orchid run "summarise this file"`) then authenticates with no prompt. If no key is set, a non-interactive run doesn't hang waiting for input - it prints one line and exits:
+
+```text
+No credential. Set ORCHID_API_KEY=<your-key> (from app.orchid.ac > Settings > API Keys) for headless use.
+```
+
+`ORCHID_API_KEY` takes precedence over a key you connected with interactively, so it's also the simplest way to override the stored key for a single run.
+
+## Switching or removing your key
+
+```bash
+orchid auth logout
+```
+
+This clears the stored Orchid credential; the next interactive run re-opens the connect dialog. It's safe to run when nothing is stored, and it doesn't touch `ORCHID_API_KEY` - if that's still set, logout tells you it's still active.
+
+To switch keys, log out and connect again with the new key, or set `ORCHID_API_KEY` to the new value.
+
+## How your key is checked and stored
+
+- **Validated before it's stored.** Pasting a key triggers a real request to the gateway. Only a key the gateway accepts is saved; a rejected key, or one that can't reach the gateway, is reported and nothing is written.
+- **Stored locally, with locked-down permissions.** A connected key is written to your local credentials file, readable only by you - never printed to the terminal, written to logs or sent anywhere but `llm.orchid.ac`.
+- **Resolution order.** Orchid uses the first key it finds: `ORCHID_API_KEY` from the environment, then a key set in your Orchid config file, then the key you connected with interactively (stored). The first match wins.
+
+## Troubleshooting
+
+| You see | What it means | Fix |
+|---|---|---|
+| `That key was rejected by the gateway.` | The gateway said no - the key is wrong, mistyped or revoked | Copy the key fresh from app.orchid.ac → Settings → API Keys and paste it whole, with no spaces |
+| `Could not reach the gateway: …` | Orchid couldn't contact `llm.orchid.ac` | Check your network or proxy; nothing is stored, so just retry once connectivity is back |
+| `No credential. Set ORCHID_API_KEY=…` | A non-interactive run found no key | Set `ORCHID_API_KEY` above, or run `orchid` interactively to use the dialog |
+| The dialog doesn't appear | A key already resolves (env, config or stored) | Run `orchid auth logout` to clear the stored key, or unset `ORCHID_API_KEY`, then launch again |
+
+## Next steps
+
+You're connected - run `orchid` and start a session, or use `orchid run "<prompt>"` for a one-shot.

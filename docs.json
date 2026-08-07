@@ -81,6 +81,15 @@
         ]
       },
       {
+        "tab": "CLI",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": ["cli/installation", "cli/authentication"]
+          }
+        ]
+      },
+      {
         "tab": "API Reference",
         "groups": [
           {
