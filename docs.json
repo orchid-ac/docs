@@ -86,6 +86,14 @@
           {
             "group": "Getting Started",
             "pages": ["cli/installation", "cli/authentication"]
+          },
+          {
+            "group": "Usage",
+            "pages": ["cli/features", "cli/keybindings", "cli/commands"]
+          },
+          {
+            "group": "Configuration",
+            "pages": ["cli/configuration"]
           }
         ]
       },

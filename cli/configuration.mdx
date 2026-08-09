@@ -1,0 +1,78 @@
+---
+title: Configuration
+description: Config file, environment variables, and defaults
+---
+
+Orchid works with zero configuration - it ships with a default provider (`orchid` → `orchid01` via `llm.orchid.ac`), so the only thing you need is an API key. Everything on this page is optional.
+
+## Config file
+
+Orchid looks for `orchid.json` or `orchid.jsonc` (also accepts `opencode.json`/`opencode.jsonc` for compatibility with upstream config). Two scopes:
+
+| Scope | Location | Applies to |
+|---|---|---|
+| Global | `~/.config/orchid/orchid.json` | Every project |
+| Project | `orchid.json` at your project root | That project only |
+
+A project config takes precedence over the global one. Ask Orchid to set something up for you - "add an MCP server to my global config" - or edit the file directly; changes are picked up on the next run.
+
+<Info>
+  `orchid mcp add` and `orchid plug` write to whichever config you choose interactively, so you rarely need to hand-edit JSON for common changes.
+</Info>
+
+## Environment variables
+
+| Variable | What it does |
+|---|---|
+| `ORCHID_API_KEY` | Your Orchid API key - takes precedence over any stored or config-file key |
+| `ORCHID_CONFIG` | Path to an explicit config file, overriding the normal lookup |
+| `ORCHID_CONFIG_CONTENT` | Inline JSON config content, useful for ephemeral or CI environments |
+| `ORCHID_CONFIG_DIR` | Override the global config directory |
+| `ORCHID_DISABLE_PROJECT_CONFIG` | Ignore any project-level config file |
+| `ORCHID_DISABLE_DEFAULT_PLUGINS` | Skip loading Orchid's bundled default plugins |
+| `ORCHID_DISABLE_EXTERNAL_SKILLS` | Skip loading skills from outside the project |
+| `ORCHID_DISABLE_CLAUDE_CODE_SKILLS` | Skip auto-discovering Claude Code-format skills |
+| `ORCHID_DISABLE_SHARE` | Disable session sharing (already the default) |
+| `ORCHID_ENABLE_AUTOUPDATE` | Opt in to automatic updates (auto-update is off by default) |
+| `ORCHID_DISABLE_AUTOUPDATE` | Force auto-update off, even if something else enabled it |
+| `ORCHID_DEHALLUCINATE` | Enable hallucination-detection mode by default |
+| `ORCHID_THINKING` | Show model thinking blocks by default |
+| `ORCHID_PURE` | Strip Orchid-specific defaults, behaving like a plain upstream install |
+| `ORCHID_TEST_HOME` | Override the home directory Orchid uses (mainly for testing) |
+
+<CodeGroup>
+
+```bash bash / zsh
+export ORCHID_API_KEY=<your-key>
+export ORCHID_ENABLE_AUTOUPDATE=true
+```
+
+```powershell PowerShell
+$env:ORCHID_API_KEY = "<your-key>"
+$env:ORCHID_ENABLE_AUTOUPDATE = "true"
+```
+
+</CodeGroup>
+
+## Data locations
+
+| What | Where |
+|---|---|
+| Binary (install script) | `~/.orchid/bin` |
+| Config | `~/.config/orchid` |
+| Session data, credentials | `~/.local/share/orchid` (XDG data dir) |
+
+<Note>
+  Run `orchid uninstall --dry-run` at any point to see exactly what Orchid has written to disk before removing anything.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Commands" icon="terminal" href="/cli/commands">
+    The full `orchid` subcommand reference
+  </Card>
+  <Card title="Keybindings" icon="keyboard" href="/cli/keybindings">
+    Every shortcut inside the TUI
+  </Card>
+</CardGroup>

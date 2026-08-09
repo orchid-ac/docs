@@ -1,0 +1,55 @@
+---
+title: Features
+description: What the Orchid CLI can do beyond plain chat
+---
+
+None of this needs turning on first - just ask for it in plain language and Orchid uses it. Run `/features` inside a session for the same list without leaving your terminal.
+
+## Subagents
+
+Ask Orchid to spawn a subagent for independent research or work - for example, "use a subagent to explore the auth flow". A subagent runs in its own isolated context, so it doesn't clutter the main conversation with exploration you don't need to see. Add "in the background" to keep working while it finishes; you're notified when it's done.
+
+## Plan mode
+
+Ask Orchid to plan before implementing anything complex or multi-file. It drafts a plan and asks for your approval before touching any files. Toggle it directly with **Shift+Tab** - see [Keybindings](/cli/keybindings) for the full interaction-mode cycle.
+
+## Skills
+
+Skills are packaged instructions for a specific workflow. Ask what skills are available, or ask Orchid to use one by name.
+
+## MCP servers
+
+Connect external tool servers with:
+
+```bash
+orchid mcp add
+```
+
+This walks you through an interactive prompt - project or global scope, a name, then either a local command to run or a remote URL to connect to. View and toggle the servers already configured with `/mcps` inside a session, or `orchid mcp list` from a terminal.
+
+## Web search and fetch
+
+Orchid can search the web or fetch a specific URL directly when it needs current information beyond its own knowledge - no flag required, just ask.
+
+## Undo and redo
+
+`/undo` and `/redo` roll both the conversation and any file changes back to, or forward from, an earlier point in the session.
+
+## Custom commands
+
+Define your own slash commands as markdown files. Ask Orchid how to set one up for a task you repeat often.
+
+## LSP integration
+
+Real language-server diagnostics and go-to-definition are wired up automatically per project - no setup needed.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Keybindings" icon="keyboard" href="/cli/keybindings">
+    Every shortcut, from mode cycling to session navigation
+  </Card>
+  <Card title="Commands" icon="terminal" href="/cli/commands">
+    The full `orchid` subcommand reference
+  </Card>
+</CardGroup>

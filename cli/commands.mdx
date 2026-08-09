@@ -1,0 +1,135 @@
+---
+title: Commands
+description: The orchid subcommand reference
+---
+
+Running `orchid` with no arguments opens the interactive TUI. Everything below runs from a regular terminal - useful for scripting, CI, and one-shot prompts. Every command also accepts `--help` for its full flag list.
+
+## `orchid run`
+
+Send a single message and print the response, without opening the TUI.
+
+```bash
+orchid run "summarise the changes in this branch"
+```
+
+Useful flags:
+
+| Flag | What it does |
+|---|---|
+| `--continue` | Continue the last session |
+| `--session <id>` | Continue a specific session |
+| `--model <provider/model>` | Use a specific model for this run |
+| `--agent <name>` | Use a specific agent for this run |
+| `--format json` | Emit raw JSON events instead of formatted text |
+| `--file <path>` | Attach one or more files to the message |
+| `--title <title>` | Set a title for the session |
+
+<Note>
+  `orchid run` authenticates the same way as the TUI - see [Headless and CI](/cli/authentication#headless-and-ci) for running it with no interactive prompt at all.
+</Note>
+
+## `orchid auth` (alias `orchid providers`)
+
+Manage your stored Orchid credential.
+
+```bash
+orchid auth login    # connect a key
+orchid auth logout   # remove the stored key
+orchid auth list      # list stored credentials
+```
+
+See [Authentication](/cli/authentication) for the full flow, including how the key is validated and stored.
+
+## `orchid mcp`
+
+Manage MCP (Model Context Protocol) servers.
+
+```bash
+orchid mcp add     # interactive: pick scope, name, and a local command or remote URL
+orchid mcp list    # list configured servers and their status
+orchid mcp auth <name>    # authenticate with an OAuth-enabled server
+orchid mcp logout <name>  # remove OAuth credentials for a server
+```
+
+## `orchid agent`
+
+Manage agents from the command line.
+
+```bash
+orchid agent create   # generate a new agent file
+orchid agent list     # list all available agents
+```
+
+`agent create` prompts for what the agent should do, its mode, which permissions to allow, and which model to use, then writes an agent file for you.
+
+## `orchid session`
+
+Manage sessions outside the TUI.
+
+```bash
+orchid session list             # list sessions
+orchid session delete <id>      # delete a session
+```
+
+`orchid export <id>` and `orchid import <file>` move session data in and out as JSON - `import` also accepts a share URL.
+
+## `orchid plug`
+
+Install a plugin and update your config in one step:
+
+```bash
+orchid plug <npm-module-name>
+```
+
+Pass `--global` to install into your global config instead of the current project, or `--force` to replace an existing version.
+
+## `orchid serve` / `orchid web`
+
+```bash
+orchid serve   # start a headless Orchid server (no UI)
+orchid web     # start the server and open the web interface
+```
+
+Useful for running Orchid as a background service other tools can talk to over HTTP.
+
+## `orchid stats`
+
+Show token usage and cost statistics:
+
+```bash
+orchid stats
+orchid stats --days 7 --model
+```
+
+## `orchid upgrade`
+
+```bash
+orchid upgrade           # upgrade to the latest version
+orchid upgrade 0.1.48    # upgrade to a specific version
+```
+
+<Note>
+  Auto-update is disabled by default. Set `ORCHID_ENABLE_AUTOUPDATE=true` to opt in, or run `orchid upgrade` manually whenever you want the latest build.
+</Note>
+
+## `orchid uninstall`
+
+Remove Orchid and its related files:
+
+```bash
+orchid uninstall
+orchid uninstall --keep-config --keep-data   # keep config and session data
+orchid uninstall --dry-run                    # show what would be removed
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="gear" href="/cli/configuration">
+    Config file locations and environment variables
+  </Card>
+  <Card title="Keybindings" icon="keyboard" href="/cli/keybindings">
+    Every shortcut inside the TUI
+  </Card>
+</CardGroup>
