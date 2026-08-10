@@ -1,0 +1,32 @@
+---
+title: Critical Thinking
+description: Adversarial analysis that counters sycophancy and surfaces real disagreement
+---
+
+## Overview
+
+orchid01 doesn't just tell you what you want to hear. For questions where reasonable experts would genuinely disagree — investment calls, strategic bets, anything with real tradeoffs — orchid01 can run the question through opposing viewpoints that argue against each other before it answers, instead of collapsing straight to a single confident take.
+
+## Why this exists
+
+LLMs default to sycophancy: they tend to agree with the premise or framing of whatever you ask, which is exactly the wrong instinct for high-stakes analysis. If you ask "why is NVIDIA a buy," a sycophantic model builds you the best possible case for NVIDIA being a buy — it rarely volunteers the case against.
+
+orchid01 counters this with adversarial techniques. Instead of one voice reasoning toward an answer, distinct viewpoints are put in genuine tension with each other, forced to respond to each other's strongest arguments, before any conclusion is reached. Disagreement isn't smoothed over — it's surfaced, so you can see exactly where the real uncertainty lives.
+
+## When it runs
+
+orchid01 triggers critical analysis automatically when it judges a question warrants scrutiny — anywhere there's a real thesis to stress-test rather than a fact to look up. You can also ask for it explicitly:
+
+- *"Debate whether NVIDIA is overvalued at current prices"*
+- *"Give me a critical multi-sided view of this acquisition"*
+- *"Steelman both sides of raising rates here"*
+
+## What you get back
+
+The viewpoints are chosen for your specific question, not pulled from a generic pro/con template — a question about a richly-valued growth stock surfaces different expert lenses than a question about a leveraged buyout. Each side sees and responds to the others' arguments, so the disagreement sharpens across rounds instead of talking past itself.
+
+You end up with more than parallel monologues: a synthesis of where the viewpoints genuinely agree, where they don't, and a verdict that doesn't paper over the tension to give you a tidy answer.
+
+<Note>
+  Curious about the technical/audit trail — how to see in your response metadata that critical analysis ran on a given request? See [Built-in tools](/guides/tool-calling#built-in-tools-orchid-finance) in the Tool Calling guide.
+</Note>

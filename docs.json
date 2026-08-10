@@ -59,6 +59,7 @@
             "pages": [
               "guides/thinking-mode",
               "guides/hallucination-detection",
+              "guides/critical-thinking",
               "guides/tool-calling",
               "guides/max-tokens",
               "guides/webhooks"
