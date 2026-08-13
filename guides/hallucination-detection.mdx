@@ -5,10 +5,10 @@ description: Optional post-reply grounding judge, scoring, and auto-correction o
 
 ## Overview
 
-On **non-streaming** requests, you can opt in to a **post-reply grounding judge** by setting:
+On [`/v1/chat/completions`](/api-reference/chat-completions) (non-streaming **and** streaming) and on non-streaming [`/v1/responses`](/api-reference/responses), you can opt in to a **post-reply grounding judge** by setting:
 
-- **`orchid.dehallucinate`** to **`true`** — [`/v1/chat/completions`](/api-reference/chat-completions) and [`/v1/responses`](/api-reference/responses) (body field)
-- **`x-orchid-dehallucinate: true`** — [`/v1/messages`](/api-reference/messages) (header)
+- **`orchid.dehallucinate`** to **`true`** — body field
+- **`x-orchid-dehallucinate: true`** — [`/v1/messages`](/api-reference/messages), non-streaming only for now (header)
 
 By default **`dehallucinate` is `false`** — the judge does not run unless you enable it. When it runs and enough document context is present, the response includes a grounding score: how well the model's answer is supported by the materials you provided.
 
@@ -136,8 +136,43 @@ The `orchid` block includes a `span_fixes` array describing what changed:
 When `action` is `flagged`, the response text itself contains the marker inline (for example `...continue into next year [⚠ unverified]`), so the caveat is visible even if you don't inspect `span_fixes`.
 
 <Note>
-  `regenerate` only runs wherever `dehallucinate` runs — **non-streaming** requests on chat completions, messages, and responses.
+  `regenerate` only runs wherever `dehallucinate` runs — chat completions (streaming and non-streaming), non-streaming responses, and non-streaming messages.
 </Note>
+
+## Streaming
+
+On `/v1/chat/completions`, `dehallucinate`/`regenerate` now also run on `stream: true` requests. The judge still needs the complete reply before it can check anything, so it runs once your content deltas finish - the result then arrives as one more `chat.completion.chunk`, carrying an `orchid` field instead of a content `delta`, sent **before** the terminal `data: [DONE]`:
+
+```
+data: {"choices":[{"delta":{"content":"Revenue"},"index":0}]}
+
+data: {"choices":[{"delta":{"content":" was $5M."},"index":0}]}
+
+data: {"choices":[{"delta":{},"index":0}],"orchid":{"grounded":false,"score":0.6,"flagged_spans":["$5M"],"checked":true}}
+
+data: [DONE]
+```
+
+The reply text you already received is never rewritten - streaming can't retroactively edit tokens a client has already rendered. `span_fixes` (when `regenerate` is on) describes what *would* fix each flagged span, for you to render as an annotation over the text you already showed, not a replacement of it.
+
+<Note>
+  Only official OpenAI-compatible SDK clients that read arbitrary/unknown fields off a chat completion chunk will see this `orchid` field - some SDKs (including the one orchid-cli is built on) validate chunks against a fixed schema and silently drop fields they don't know about. If you're building your own client and don't see `orchid` on the stream, either read the raw SSE body yourself instead of going through your SDK's typed parser, or use `POST /v1/dehallucinate/check` below.
+</Note>
+
+### `POST /v1/dehallucinate/check`
+
+A standalone endpoint for exactly the case above: same auth as the completion endpoints, takes the `messages` you sent and the `response` text you already have, and returns the same grounding shape (plus `span_fixes` when `regenerate: true`) as an ordinary JSON response - no SSE, no chunk-shape constraints.
+
+```bash
+curl -s https://llm.orchid.ac/v1/dehallucinate/check \
+  -H "Authorization: Bearer orchid-your-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [...],
+    "response": "Revenue was $5M.",
+    "regenerate": true
+  }'
+```
 
 ## When the check is skipped
 
@@ -170,10 +205,6 @@ response = client.chat.completions.create(
 ```
 
 Omitting `orchid`, or omitting `dehallucinate`/`regenerate`, behaves like `false`.
-
-<Note>
-  The grounding judge only runs on **non-streaming** requests — the full reply must be available before verification. Streaming responses return `checked: false` for this path.
-</Note>
 
 ## Best practice
 
