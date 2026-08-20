@@ -7,15 +7,19 @@ None of this needs turning on first - just ask for it in plain language and Orch
 
 ## Subagents
 
-Ask Orchid to spawn a subagent for independent research or work - for example, "use a subagent to explore the auth flow". A subagent runs in its own isolated context, so it doesn't clutter the main conversation with exploration you don't need to see. Add "in the background" to keep working while it finishes; you're notified when it's done.
+Ask Orchid to spawn a subagent for independent research or work - for example, "use a subagent to explore the auth flow". A subagent runs in its own isolated context, so it doesn't clutter the main conversation with exploration you don't need to see. Add "in the background" to keep working while it finishes; you're notified when it's done - no flag or setup required.
+
+## Cross-session messaging
+
+Different Orchid sessions - even in different terminal windows - can find and message each other. Ask one session to check in on or hand a question to another; it's native to Orchid, not something every coding agent supports.
 
 ## Plan mode
 
-Ask Orchid to plan before implementing anything complex or multi-file. It drafts a plan and asks for your approval before touching any files. Toggle it directly with **Shift+Tab** - see [Keybindings](/cli/keybindings) for the full interaction-mode cycle.
+Ask Orchid to plan before implementing anything complex or multi-file. It drafts a plan and asks for your approval before touching any files. Toggle it directly with **Shift+Tab**, which cycles normal → auto-accept edits → plan → normal.
 
 ## Skills
 
-Skills are packaged instructions for a specific workflow. Ask what skills are available, or ask Orchid to use one by name.
+Skills are packaged instructions for a specific workflow. Ask what skills are available, or run `/skills` to open the picker.
 
 ## MCP servers
 
@@ -25,7 +29,7 @@ Connect external tool servers with:
 orchid mcp add
 ```
 
-This walks you through an interactive prompt - project or global scope, a name, then either a local command to run or a remote URL to connect to. View and toggle the servers already configured with `/mcps` inside a session, or `orchid mcp list` from a terminal.
+This walks you through an interactive prompt - project or global scope, a name, then either a local command to run or a remote URL to connect to. View and toggle the servers already configured with `/mcps` inside a session, or `orchid mcp list` from a terminal. Prompts exposed by a connected server show up as their own slash commands, marked with a `:mcp` suffix.
 
 ## Web search and fetch
 
@@ -37,17 +41,29 @@ Orchid can search the web or fetch a specific URL directly when it needs current
 
 ## Custom commands
 
-Define your own slash commands as markdown files. Ask Orchid how to set one up for a task you repeat often.
+Define your own slash commands as markdown files, either in your project's `.opencode/commands/` or globally under your Orchid config directory. Ask Orchid how to set one up for a task you repeat often. A custom command with the same name as a built-in one (like `/init`) overrides it.
 
 ## LSP integration
 
-Real language-server diagnostics and go-to-definition are wired up automatically per project - no setup needed.
+Diagnostics from the real language server are wired up automatically per project as Orchid edits or writes files - no setup needed. Go-to-definition, find-references, and hover are also available as a tool, currently behind an experimental flag (`OPENCODE_EXPERIMENTAL_LSP_TOOL`).
+
+## Simple mode
+
+Toggle `/toggle-technical` to switch how completed actions render: **technical** mode shows the raw diff or command output, **simple** mode shows a short plain-language summary instead - useful if you're pairing with someone non-technical or just want less noise.
+
+## Dehallucinate
+
+An Orchid-gateway control that checks the assistant's own output against the tool results it was based on, and flags or fixes spans that don't hold up - inline, as the response renders. Toggle it with `/dehallucinate`, or set it as your default in [Configuration](/cli/configuration).
+
+## Plugins
+
+Install a plugin to add or replace parts of the TUI - a status line, a sidebar panel, a custom theme, a whole dialog - from an npm package or a local file. Open the plugin manager from the command palette (**Ctrl+P**), or ask Orchid to help you write one.
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Keybindings" icon="keyboard" href="/cli/keybindings">
-    Every shortcut, from mode cycling to session navigation
+  <Card title="Slash Commands" icon="slash" href="/cli/slash-commands">
+    Every `/` command available inside a session
   </Card>
   <Card title="Commands" icon="terminal" href="/cli/commands">
     The full `orchid` subcommand reference

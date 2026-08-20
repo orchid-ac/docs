@@ -90,7 +90,7 @@
           },
           {
             "group": "Usage",
-            "pages": ["cli/features", "cli/keybindings", "cli/commands"]
+            "pages": ["cli/features", "cli/slash-commands", "cli/commands"]
           },
           {
             "group": "Configuration",

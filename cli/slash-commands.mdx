@@ -1,0 +1,88 @@
+---
+title: Slash Commands
+description: Every / command available inside a session
+---
+
+Type `/` in the prompt box to see the full list with autocomplete. It's built from three sources: the built-ins below, prompts exposed by any MCP server you've connected (shown with a `:mcp` suffix), and your own [custom commands](/cli/features#custom-commands) - which take priority over a built-in of the same name.
+
+<Info>
+  Skills don't appear in this list even though they're markdown-driven too - open the picker with `/skills` instead. See [Features](/cli/features) for what each capability actually does.
+</Info>
+
+## Session
+
+| Command | Aliases | What it does |
+|---|---|---|
+| `/new` | `/clear` | Start a new session |
+| `/sessions` | `/resume`, `/continue` | Open the session list to switch sessions |
+| `/rename` | | Rename the current session |
+| `/fork` | | Fork the session from a point in its timeline |
+| `/timeline` | | Jump to an earlier message via the timeline dialog |
+| `/share` | | Share the session and copy the link |
+| `/unshare` | | Stop sharing the session |
+| `/compact` | `/summarize` | Compact the session to free up context |
+| `/undo` | | Undo the previous message - reverts the conversation and any file changes |
+| `/redo` | | Redo a message you just undid |
+| `/copy` | | Copy the session transcript to your clipboard |
+| `/export` | | Export the transcript to Markdown and open it in your editor |
+| `/timestamps` | `/toggle-timestamps` | Show or hide message timestamps |
+
+## Agents, models and connection
+
+| Command | Aliases | What it does |
+|---|---|---|
+| `/agents` | | Switch the active agent |
+| `/variants` | | Switch model variant (reasoning effort) - only shown when the current model has variants |
+| `/mcps` | | View and toggle connected MCP servers |
+| `/connect` | | Connect Orchid or add a provider |
+| `/org` | `/orgs`, `/switch-org` | Switch console org - only shown if you belong to more than one |
+
+## Display and behaviour
+
+| Command | Aliases | What it does |
+|---|---|---|
+| `/themes` | | Switch theme |
+| `/thinking` | `/toggle-thinking` | Collapse or expand the model's thinking blocks |
+| `/narration` | | Cycle how much the model narrates its actions in prose |
+| `/dehallucinate` | `/toggle-dehallucinate` | Toggle [dehallucinate mode](/cli/features#dehallucinate) |
+| `/toggle-technical` | | Switch between technical (raw diff/output) and simple (plain-language summary) display |
+
+## Tools and workspace
+
+| Command | Aliases | What it does |
+|---|---|---|
+| `/diff` | | Open the full-screen diff viewer |
+| `/editor` | | Open your `$EDITOR` to compose the message instead of typing in the prompt box |
+| `/skills` | | Open the skills picker |
+| `/move` | | Move the session to a different project directory |
+
+## Project
+
+| Command | What it does |
+|---|---|
+| `/init` | Guided setup for your project's `AGENTS.md` |
+| `/review` | Review changes - defaults to uncommitted, or pass a commit, branch, or PR |
+
+## App
+
+| Command | Aliases | What it does |
+|---|---|---|
+| `/help` | | Show the help dialog |
+| `/features` | | Show the in-app features list |
+| `/status` | | View status |
+| `/exit` | `/quit`, `/q` | Exit Orchid |
+
+<Note>
+  A couple of niche commands are gated behind experimental flags and off by default, so they're left out above: `/workspaces` and `/warp` (workspace management, `OPENCODE_EXPERIMENTAL_WORKSPACES`). Ask Orchid if you want to try them.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Features" icon="sparkles" href="/cli/features">
+    What each of these actually does
+  </Card>
+  <Card title="Commands" icon="terminal" href="/cli/commands">
+    The full `orchid` subcommand reference
+  </Card>
+</CardGroup>

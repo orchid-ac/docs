@@ -43,7 +43,20 @@ curl -fsSL https://orchid.ac/install | bash -s -- --no-modify-path
 
 A self-contained folder you can run from anywhere - no installer, no admin rights.
 
-1. Download **`orchid-windows-x64.zip`** from the [Releases page](https://github.com/orchid-ac/orchid-cli/releases).
+<Note>
+  `orchid-cli`'s GitHub repo is private, so its Releases page isn't publicly browsable. Downloads go through `orchid.ac`'s release proxy instead.
+</Note>
+
+1. Find the latest version and download **`orchid-windows-x64.zip`**:
+
+   ```powershell
+   # Look up the current version tag (e.g. orchid-v0.2.2)
+   (Invoke-RestMethod https://orchid.ac/api/releases/latest).tag_name
+
+   # Download it, substituting the tag above
+   Invoke-WebRequest -Uri "https://orchid.ac/api/releases/download/<tag>/orchid-windows-x64.zip" -OutFile orchid-windows-x64.zip
+   ```
+
 2. Extract it to a folder of your choice, e.g. `C:\Tools\orchid`.
 3. Run it:
 
@@ -65,14 +78,19 @@ Open a new terminal afterwards for the change to take effect.
 
 ## Manual archive (macOS / Linux / Windows)
 
-Grab a self-contained archive from the [Releases page](https://github.com/orchid-ac/orchid-cli/releases) and run it in place:
+`orchid-cli`'s GitHub repo is private, so releases aren't browsable there directly - grab the archive through `orchid.ac`'s release proxy instead:
 
 ```bash
+# Look up the current version tag (e.g. orchid-v0.2.2)
+tag=$(curl -s https://orchid.ac/api/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
+
 # Linux
+curl -fsSL -o orchid-linux-x64.tar.gz "https://orchid.ac/api/releases/download/$tag/orchid-linux-x64.tar.gz"
 tar -xzf orchid-linux-x64.tar.gz
 ./orchid --version
 
 # macOS
+curl -fsSL -o orchid-darwin-arm64.zip "https://orchid.ac/api/releases/download/$tag/orchid-darwin-arm64.zip"
 unzip orchid-darwin-arm64.zip
 ./orchid --version
 ```
