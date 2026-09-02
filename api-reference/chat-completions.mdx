@@ -43,8 +43,10 @@ Optional body key **`orchid`** controls Orchid-specific behaviour on **`/v1/chat
 |-------|------|---------|-------------|
 | `thinking` | boolean | `false` | Enable deep reasoning mode |
 | `thinking_effort` | string | — | When thinking is on: `none`, `low`, `medium`, or `high` |
-| `dehallucinate` | boolean | `false` | Set `true` to run the post-reply grounding judge on **non-streaming** completions |
+| `dehallucinate` | boolean | `false` | Set `true` to run the post-reply grounding judge (streaming and non-streaming) |
 | `regenerate` | boolean | `false` | Set `true` to auto-correct unsupported claims where possible. Implies `dehallucinate: true`. |
+| `context` | string/array | — | Explicit grounding context, bypassing the positional "everything but the last message" fallback |
+| `dehallucinate_effort` | string | `standard` | Grounding judge model tier: `standard`, `medium`, or `high` |
 | `memory` | boolean | `false` | Set `true` to enable persistent per-API-key memory. Facts from past conversations are retrieved and injected as context; new exchanges are written back asynchronously. Skipped for zero-retention keys. |
 
 See [Hallucination detection](/guides/hallucination-detection) and [Rate limits](/api-reference/rate-limits).

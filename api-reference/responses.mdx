@@ -39,6 +39,8 @@ Same body as [`/v1/chat/completions`](/api-reference/chat-completions) (`model`,
 | `thinking_effort` | string | — | When thinking is on: `none`, `low`, `medium`, or `high` |
 | `dehallucinate` | boolean | `false` | Run the post-reply grounding judge (non-streaming only) |
 | `regenerate` | boolean | `false` | Auto-correct unsupported claims where possible; implies `dehallucinate: true`. See [Hallucination detection](/guides/hallucination-detection). |
+| `context` | string/array | — | Explicit grounding context, bypassing the positional "everything but the last message" fallback |
+| `dehallucinate_effort` | string | `standard` | Grounding judge model tier: `standard`, `medium`, or `high` |
 
 ## Response
 

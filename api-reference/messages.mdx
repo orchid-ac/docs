@@ -33,6 +33,8 @@ There is **no** `orchid` object in the JSON body on this route. Use headers inst
 |--------|--------|
 | `x-orchid-dehallucinate` | `true` or `false` — set `true` to run the post-reply grounding judge on **non-streaming** completions |
 | `x-orchid-regenerate` | `true` or `false` — set `true` to auto-correct unsupported claims where possible. Implies `x-orchid-dehallucinate: true`. |
+| `x-orchid-context` | Explicit grounding context (string), bypassing the positional "everything but the last message" fallback |
+| `x-orchid-dehallucinate-effort` | Grounding judge model tier: `standard`, `medium`, or `high` |
 | `x-orchid-thinking` | `true` or `false` |
 | `x-orchid-thinking-effort` | `none`, `low`, `medium`, or `high` |
 

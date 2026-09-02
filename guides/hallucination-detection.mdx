@@ -10,7 +10,7 @@ On [`/v1/chat/completions`](/api-reference/chat-completions) (non-streaming **an
 - **`orchid.dehallucinate`** to **`true`** — body field
 - **`x-orchid-dehallucinate: true`** — [`/v1/messages`](/api-reference/messages), non-streaming only for now (header)
 
-By default **`dehallucinate` is `false`** — the judge does not run unless you enable it. When it runs and enough document context is present, the response includes a grounding score: how well the model's answer is supported by the materials you provided.
+By default **`dehallucinate` is `false`** — the judge does not run unless you enable it. When it runs, the response includes a grounding score: how well the model's answer is supported by the materials you provided.
 
 The judge checks **all claims** in the response — figures, dates, names, comparisons, and other factual assertions — not just numerical financial figures.
 
@@ -55,6 +55,10 @@ curl -s https://llm.orchid.ac/v1/responses \
 
 **Messages API** — send header `x-orchid-dehallucinate: true` (see [Messages API](/api-reference/messages)).
 
+<Note>
+  Grounding only runs on non-streaming `/v1/responses` and non-streaming `/v1/messages` — `dehallucinate`/`regenerate` are ignored (forced off) on the streaming variants of those two endpoints. Chat completions is the only endpoint where the judge runs on `stream: true` (see [Streaming](#streaming) below).
+</Note>
+
 ## Reading the grounding score
 
 When the judge runs, the response includes an `orchid` metadata field:
@@ -78,6 +82,64 @@ When the judge runs, the response includes an `orchid` metadata field:
 | `score` | 0.0–1.0. Higher is better. 1.0 = fully grounded |
 | `flagged_spans` | List of specific text spans that could not be verified — of any claim type, not just figures |
 | `checked` | Whether the check actually ran |
+
+## Providing explicit context with `orchid.context`
+
+By default the judge treats **everything in `messages` except the last user message** as context, and the last user message as the question. That positional convention is a common footgun — it's easy to fold a document into the same message as the question and silently get an unhelpful check, since the document text ends up in the "question" side instead of "context".
+
+Set `orchid.context` to remove the ambiguity — a string, or a list of strings that get joined:
+
+```python
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=[...],
+    extra_body={
+        "orchid": {
+            "dehallucinate": True,
+            "context": filing_text,  # or ["doc 1 text", "doc 2 text"]
+        }
+    },
+)
+```
+
+- **`orchid.context`** — chat completions and responses (body field)
+- **`x-orchid-context`** — messages (header, string only)
+- **`context`** — top-level field on `POST /v1/dehallucinate/check`
+
+When set, it fully replaces the positional "everything but the last message" context. Context is capped at 6000 characters regardless of source.
+
+## Choosing judge accuracy with `dehallucinate_effort`
+
+`dehallucinate_effort` picks which model does the grounding judging. Higher tiers use a larger judge model — more accurate, slower, and more expensive per check.
+
+- **`orchid.dehallucinate_effort`** — chat completions and responses (body field)
+- **`x-orchid-dehallucinate-effort`** — messages (header)
+- **`effort`** — top-level field on `POST /v1/dehallucinate/check`
+
+| Value | Notes |
+|-------|-------|
+| `standard` (default) | Fastest and cheapest. Used when `dehallucinate_effort` is omitted. |
+| `medium` | Larger judge model, higher accuracy, more latency. |
+| `high` | Largest judge model available for this check; use for high-stakes checks where latency matters less than catching subtle errors. |
+
+```python
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=[...],
+    extra_body={
+        "orchid": {
+            "dehallucinate": True,
+            "dehallucinate_effort": "high",
+        }
+    },
+)
+```
+
+An unrecognized or omitted value silently falls back to `standard` rather than erroring.
+
+<Note>
+  If you also pass `regenerate: true`, span correction uses the same effort tier as the check that flagged the spans — pass `dehallucinate_effort` once, it applies to both.
+</Note>
 
 ## Auto-correcting with `regenerate`
 
@@ -170,27 +232,29 @@ curl -s https://llm.orchid.ac/v1/dehallucinate/check \
   -d '{
     "messages": [...],
     "response": "Revenue was $5M.",
+    "context": "Filing excerpt: ...",
+    "effort": "high",
     "regenerate": true
   }'
 ```
 
 ## When the check is skipped
 
-The check returns `checked: false` (and a default score of `1.0`) when:
-
-- `dehallucinate` / `x-orchid-dehallucinate` (and `regenerate` / `x-orchid-regenerate`) were not enabled
-- The response contains no checkable claims
-- The context is too short (under ~200 characters) — likely a bare question with no documents
+The check returns `checked: false` (and a default score of `1.0`) only when **dehallucinate was never requested** on that call — omitting `orchid.dehallucinate`/`x-orchid-dehallucinate`, or setting it to `false`:
 
 ```json
 {
   "orchid": {
-    "checked": false,
-    "reason":  "no checkable claims in response",
-    "score":   1.0
+    "grounded": true,
+    "score":    1.0,
+    "flagged_spans": [],
+    "checked":  false,
+    "reason":   "dehallucinate=false"
   }
 }
 ```
+
+Once `dehallucinate` is enabled, the judge always runs and `checked` is always `true` — there is no length-based or content-based skip. Short or empty context is a real judgment for the prompt to make (it's instructed to return `grounded: true` when there's no document to check against), not a Python heuristic that bypasses the call. If the judge call itself fails after retries, the check still reports `checked: true`, but fails **closed**: `grounded: false` with a `reason` explaining the failure, never a silent pass.
 
 ## Leaving the judge off (default)
 
@@ -225,3 +289,5 @@ messages = [
 ```
 
 Without document context, the model answers from memory and the grounding check has nothing to verify against.
+
+Prefer passing that same document text through [`orchid.context`](#providing-explicit-context-with-orchidcontext) explicitly rather than relying on the positional fallback — it's unambiguous and avoids the case where a document folded into the last user message gets treated as part of the question instead of the context.
