@@ -157,15 +157,6 @@
           }
         },
         {
-          "anchor": "Status",
-          "href": "https://status.orchid.ac",
-          "icon": "signal",
-          "color": {
-            "light": "#0c8ce9",
-            "dark": "#38bdf8"
-          }
-        },
-        {
           "anchor": "Support",
           "href": "mailto:hello@orchid.ac",
           "icon": "envelope",
