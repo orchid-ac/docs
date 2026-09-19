@@ -115,8 +115,8 @@ The provenance result, trimmed for length, rates each sentence:
   ],
   "coverage": {
     "sentences": 4, "verified": 1, "derived": 1, "inferred": 1, "unsupported": 1,
-    "wrong": 0, "miscited": 0, "uncited": 0, "exempt": 0, "unchecked": 0,
-    "score": 0.5, "supported_score": 0.75
+    "wrong": 0, "miscited": 0, "uncited": 0, "exempt": 0, "unchecked": 0, "absent": 0,
+    "score": 0.5, "supported_score": 0.75, "strict_score": 0.5, "failed": 1
   },
   "sentences": [
     {
@@ -175,13 +175,14 @@ Each sentence gets one `status`:
 |--------|---------|
 | `verified` | Every figure, date and name is in the quoted evidence, bound to the right entity and field, and the semantics hold |
 | `derived` | As `verified`, but at least one figure is recomputed from quoted figures — the claim carries the `formula` |
-| `inferred` | Cites real evidence but asserts nothing code can check — typically a judgement or conclusion |
-| `unsupported` | A figure, date or name is not in the quoted evidence |
+| `inferred` | Cites real evidence but asserts nothing code can check — typically a judgement or conclusion. A sentence whose figures all check out but which also says something its evidence doesn't cover (a clause with no checked claim and little wording in common with the source) is capped here, with the uncovered text listed in `unchecked_text` |
+| `unsupported` | A figure, date or name is not in the quoted evidence — or the only evidence is a figure the model wrote into its own tool call (a number typed into code, a search query the tool echoed), or a quote that only names the subject |
 | `wrong` | The evidence contradicts the sentence — for example "down 18.0%" when the source says up, or "above the 5% limit" at 4.2% |
-| `miscited` | A quote can't be found in the source it names, or the source doesn't exist |
+| `miscited` | A quote can't be found in the source it names, the source doesn't exist, or a `...` quote joins fields from different records |
 | `uncited` | A sentence that makes a claim carries no citation |
 | `exempt` | Structure, not a claim: headings, table headers, list intros, questions to the user |
-| `unchecked` | Code blocks — listed so you know they weren't checked |
+| `unchecked` | Code blocks — listed so you know they weren't checked. An untagged block written as prose is checked as prose |
+| `absent` | Says what the sources don't show ("The sources do not show Castellan's revenue"). Checked against every record — `wrong` if the data does hold it — and left out of the score |
 
 Each checkable sentence also carries `claims`. A claim is one figure, date, period, name or semantic assertion (`negation`, `direction`, `comparison`, `condition`, `ranking`, `hedge`, …) with its own `status`:
 
@@ -194,14 +195,16 @@ Each checkable sentence also carries `claims`. A claim is one figure, date, peri
 
 ### Coverage
 
-`coverage` counts sentences by status. `sentences` is the number of checkable sentences — every status except `exempt` and `unchecked`.
+`coverage` counts sentences by status. `sentences` is the number of checkable sentences — every status except `exempt`, `unchecked` and `absent`.
 
 | Field | Formula |
 |-------|---------|
 | `score` | (`verified` + `derived`) ÷ checkable sentences |
 | `supported_score` | (`verified` + `derived` + `inferred`) ÷ checkable sentences |
+| `strict_score` | (`verified` + `derived`) ÷ distinct sentences, counting code blocks against it — built to be optimised against: repeating a verified sentence dilutes nothing, and a claim can't hide in a code block |
+| `failed` | Number of `unsupported`, `wrong`, `miscited` and `uncited` sentences |
 
-Both are `null` when an answer has no checkable sentences.
+`score` and `supported_score` are `null` when an answer has no checkable sentences; `strict_score` is then `0`.
 
 ## Reading results
 
