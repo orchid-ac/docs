@@ -62,24 +62,26 @@ reasoning = response.choices[0].message.model_extra.get("reasoning_content", "")
 answer    = response.choices[0].message.content
 ```
 
-## With grounding score
+## With provenance
+
+Provenance checks every sentence of the final answer against the `role: "tool"` messages in your request. See [Provenance](/guides/provenance).
 
 ```python
 response = client.chat.completions.create(
     model="orchid01",
-    messages=[
-        {"role": "user", "content": f"Filing:\n\n{filing_text}\n\nWhat was Q3 revenue?"}
-    ],
-    extra_body={"orchid": {"dehallucinate": True}},
+    messages=messages,  # includes your tool calls and role: "tool" results
+    tools=tools,
+    extra_body={"orchid": {"provenance": True}},
 )
 
-answer  = response.choices[0].message.content
-orchid  = response.model_extra.get("orchid", {})
-score   = orchid.get("score", 1.0)
-grounded = orchid.get("grounded", True)
+answer     = response.choices[0].message.content
+provenance = response.model_extra.get("orchid", {}).get("provenance", {})
 
 print(f"Answer: {answer}")
-print(f"Grounding score: {score} ({'✓' if grounded else '⚠ check flagged spans'})")
+if provenance.get("checked"):
+    print(f"Coverage: {provenance['coverage']['score']}")
+    for s in provenance["sentences"]:
+        print(f"  [{s['status']}] {s['text']}")
 ```
 
 ## Related

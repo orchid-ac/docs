@@ -57,7 +57,7 @@
             "group": "Guides",
             "pages": [
               "guides/thinking-mode",
-              "guides/hallucination-detection",
+              "guides/provenance",
               "guides/critical-thinking",
               "guides/tool-calling",
               "guides/max-tokens",
@@ -168,6 +168,12 @@
       ]
     }
   },
+  "redirects": [
+    {
+      "source": "/guides/hallucination-detection",
+      "destination": "/guides/provenance"
+    }
+  ],
   "contextual": {
     "options": ["copy", "view", "chatgpt", "claude", "cursor"]
   },

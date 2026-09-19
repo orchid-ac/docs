@@ -43,13 +43,11 @@ Optional body key **`orchid`** controls Orchid-specific behaviour on **`/v1/chat
 |-------|------|---------|-------------|
 | `thinking` | boolean | `false` | Enable deep reasoning mode |
 | `thinking_effort` | string | — | When thinking is on: `none`, `low`, `medium`, or `high` |
-| `dehallucinate` | boolean | `false` | Set `true` to run the post-reply grounding judge (streaming and non-streaming) |
-| `regenerate` | boolean | `false` | Set `true` to auto-correct unsupported claims where possible. Implies `dehallucinate: true`. |
-| `context` | string/array | — | Explicit grounding context, bypassing the positional "everything but the last message" fallback |
-| `dehallucinate_effort` | string | `standard` | Grounding judge model tier: `standard`, `medium`, or `high` |
+| `provenance` | boolean | `false` | Set `true` to have the model cite a `role: "tool"` message for every sentence and check each claim against it with deterministic code (streaming and non-streaming). See [Provenance](/guides/provenance). |
+| `sources` | array | — | With `provenance`: full original tool outputs, as `[{"tool_call_id": "...", "content": "..."}]`, for any you shortened in `messages`. Quotes and offsets are checked against these. |
 | `memory` | boolean | `false` | Set `true` to enable persistent per-API-key memory. Facts from past conversations are retrieved and injected as context; new exchanges are written back asynchronously. Skipped for zero-retention keys. |
 
-See [Hallucination detection](/guides/hallucination-detection) and [Rate limits](/api-reference/rate-limits).
+See [Provenance](/guides/provenance) and [Rate limits](/api-reference/rate-limits).
 
 <Note>
   The built-in `orchid-finance` tool suite runs automatically on every request (see [Tool calling](/guides/tool-calling)). If it — or a `tools` array you passed — triggers a tool call, `stream: true` is overridden to a non-streamed response: the model must finish its tool-call loop before it can return anything.
@@ -81,16 +79,33 @@ Standard OpenAI chat completion response, plus an `orchid` field:
     "mcp_server":              "orchid-finance",
     "mcp_iterations":          1,
     "mcp_tool_calls":          [],
-    "dehallucinate_requested": true,
-    "grounded":                true,
-    "score":                   0.97,
-    "flagged_spans":           [],
-    "checked":                 true
+    "provenance": {
+      "version":   1,
+      "checked":   true,
+      "sources":   [{ "id": "S1", "tool_call_id": "call_abc", "tool": "get_filing" }],
+      "coverage":  {
+        "sentences": 6, "verified": 4, "derived": 1, "inferred": 1, "unsupported": 0,
+        "wrong": 0, "miscited": 0, "uncited": 0, "exempt": 1, "unchecked": 0,
+        "score": 0.8333, "supported_score": 1.0
+      },
+      "sentences": [...],
+      "lineage":   {}
+    },
+    "provenance_coverage": { "sentences": 6, "verified": 4, "derived": 1, "...": "same as provenance.coverage" }
   }
 }
 ```
 
-`mcp_server`, `mcp_iterations`, and `mcp_tool_calls` are always present — see [Tool calling](/guides/tool-calling#mcp-audit-fields). The `dehallucinate_requested`, `grounded`, `score`, `flagged_spans`, and `checked` fields only appear with their documented values when `dehallucinate` (or `regenerate`) was enabled — see [Hallucination detection](/guides/hallucination-detection).
+`mcp_server`, `mcp_iterations`, and `mcp_tool_calls` are always present — see [Tool calling](/guides/tool-calling#mcp-audit-fields).
+
+`provenance` and `provenance_coverage` appear only when you set `orchid.provenance: true`:
+
+| Field | Description |
+|-------|-------------|
+| `provenance` | The full result: `checked`, `sources`, per-sentence `sentences` (status, citations with `offsets` into your tool messages, and claims), `coverage`, and `lineage`. On a turn that ends in tool calls it is `{"checked": false, "reason": "tool call turn"}`. |
+| `provenance_coverage` | A copy of `provenance.coverage`: sentence counts per status, `score`, and `supported_score` |
+
+With `stream: true`, the same `orchid` object arrives in one extra chunk with an empty `delta`, sent after the last content chunk and before `data: [DONE]`. See [Provenance](/guides/provenance#reading-results) for the full schema and how to read it.
 
 ## Error responses
 
@@ -120,4 +135,4 @@ Errors follow that format, for example:
 
 - [Responses](/api-reference/responses) — same body shape, with server-side conversation history via `previous_response_id`
 - [Tool calling](/guides/tool-calling) — built-in tools, your own tools, and MCP audit fields
-- [Hallucination detection](/guides/hallucination-detection) — `dehallucinate` and `regenerate`
+- [Provenance](/guides/provenance) — cited, code-checked answers with `orchid.provenance`

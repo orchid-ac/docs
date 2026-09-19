@@ -1,0 +1,415 @@
+---
+title: Provenance
+description: Traceable answers — every sentence cited to a tool output and checked by code
+---
+
+## Overview
+
+Provenance ties every sentence of an answer to the tool output it came from, and checks it.
+
+When you turn it on, the model cites a source after every sentence, quoting it word for word. Orchid then runs deterministic code over the answer — there is no LLM judge. The code finds each quote in the tool output and checks every figure, date, period and name in the sentence against it. It also checks what the sentence says about those figures: direction, comparisons and rules.
+
+You get back the same clean answer text as always, plus a per-sentence result you can use to:
+
+- show which sentences are verified, derived from other figures, or unsupported
+- link each sentence to the exact characters in the tool output that back it
+- score an answer by how much of it the evidence supports
+
+Provenance is available on [`/v1/chat/completions`](/api-reference/chat-completions) only, streaming and non-streaming. It is not available on [`/v1/messages`](/api-reference/messages) or [`/v1/responses`](/api-reference/responses).
+
+## How it works
+
+1. **Tool outputs become sources.** Every `role: "tool"` message in your request becomes a numbered source — `S1`, `S2`, … — in conversation order. Each tool message needs its standard `tool_call_id`.
+2. **The model cites as it writes.** Orchid tells the model to end every sentence, bullet and table row with a citation that names a source and quotes it word for word.
+3. **Orchid strips the citations.** The citation markers are removed from the stream before it reaches you, so the text you receive is clean.
+4. **Code checks every sentence.** Orchid locates each quote in its source and swaps in the source's own text, so the check never trusts the model's copy. It then checks:
+   - **Figures, dates, periods and names** — each one must appear in the quoted evidence. Legitimate rewrites are allowed: `0.075` ↔ `7.5%`, `$1,200m` ↔ `$1.2bn`, and sensible rounding.
+   - **Binding** — a figure must belong to the right entity and field. A P&L figure can't be reported as a portfolio weight.
+   - **Semantics** — negation, direction (up vs. down), comparisons against quoted thresholds, rules and conditions, rankings and hedges. Moves the source never describes are flagged.
+   - **Derived figures** — a figure that isn't quoted but can be recomputed from quoted figures (a difference, sum, ratio or percentage change) is marked `derived`, with the formula shown.
+
+Names that you wrote yourself in a user message need no source.
+
+## Enabling provenance
+
+Set `provenance` to `true` in the `orchid` object:
+
+```python
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=messages,  # including your role: "tool" messages
+    tools=tools,
+    extra_body={"orchid": {"provenance": True}},
+)
+```
+
+```bash
+curl -s https://llm.orchid.ac/v1/chat/completions \
+  -H "Authorization: Bearer orchid-your-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "orchid01",
+    "messages": [...],
+    "orchid": {"provenance": true}
+  }'
+```
+
+Provenance is off by default. Omitting `orchid.provenance` behaves like `false`.
+
+<Note>
+  Provenance only checks what is cited to `role: "tool"` messages in the request. Documents pasted into a user or system message are not sources. Return your data from a tool call instead — see [Tool calling](/guides/tool-calling).
+</Note>
+
+## Worked example
+
+A user asks about a position. Your agent calls two tools and sends their outputs back:
+
+```python
+messages = [
+    {"role": "system", "content": "You are a portfolio analyst."},
+    {"role": "user", "content": "How is our HVN position doing, and is it within limits?"},
+    {
+        "role": "assistant",
+        "content": None,
+        "tool_calls": [
+            {"id": "call_pos",  "type": "function",
+             "function": {"name": "get_position", "arguments": "{\"ticker\": \"HVN\"}"}},
+            {"id": "call_pref", "type": "function",
+             "function": {"name": "get_preferences", "arguments": "{}"}},
+        ],
+    },
+    # Becomes S1
+    {"role": "tool", "tool_call_id": "call_pos",
+     "content": "{\"ticker\": \"HVN\", \"name\": \"Harvey Norman\", \"weight_pct\": 4.2, \"entry_price\": 4.1, \"last_price\": 4.84, \"pnl_since_entry_pct\": 18.0}"},
+    # Becomes S2
+    {"role": "tool", "tool_call_id": "call_pref",
+     "content": "{\"max_single_name_pct\": 5.0}"},
+]
+
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=messages,
+    tools=tools,
+    extra_body={"orchid": {"provenance": True}},
+)
+```
+
+The answer you receive is plain text, with no citation markers:
+
+```
+Harvey Norman (HVN) is up 18.0% since entry.
+At 4.2% of the portfolio, it sits 0.8pp below the 5% single-name limit.
+HVN is up 21% since entry.
+It remains a sensible position to hold.
+```
+
+The provenance result, trimmed for length, rates each sentence:
+
+```json
+{
+  "version": 1,
+  "checked": true,
+  "sources": [
+    {"id": "S1", "tool_call_id": "call_pos",  "tool": "get_position"},
+    {"id": "S2", "tool_call_id": "call_pref", "tool": "get_preferences"}
+  ],
+  "coverage": {
+    "sentences": 4, "verified": 1, "derived": 1, "inferred": 1, "unsupported": 1,
+    "wrong": 0, "miscited": 0, "uncited": 0, "exempt": 0, "unchecked": 0,
+    "score": 0.5, "supported_score": 0.75
+  },
+  "sentences": [
+    {
+      "span": [0, 44],
+      "text": "Harvey Norman (HVN) is up 18.0% since entry.",
+      "status": "verified",
+      "citations": [{
+        "source": "S1", "tool_call_id": "call_pos", "tool": "get_position",
+        "quote": "\"name\": \"Harvey Norman\" ... \"pnl_since_entry_pct\": 18.0",
+        "source_text": "name\": \"Harvey Norman ... pnl_since_entry_pct\": 18.0",
+        "found": true,
+        "offsets": [[19, 40], [103, 129]],
+        "precedents": []
+      }],
+      "claims": [
+        {"kind": "number", "text": "18.0%", "span": [26, 31], "status": "sourced", "citation": 0},
+        {"kind": "name", "text": "Harvey Norman", "span": [0, 13], "status": "sourced", "citation": 0}
+      ],
+      "problems": []
+    },
+    {
+      "span": [45, 116],
+      "text": "At 4.2% of the portfolio, it sits 0.8pp below the 5% single-name limit.",
+      "status": "derived",
+      "claims": [
+        {"kind": "number", "text": "4.2%",  "span": [48, 52], "status": "sourced", "citation": 0},
+        {"kind": "number", "text": "0.8pp", "span": [79, 84], "status": "derived", "formula": "5.0 − 4.2"},
+        {"kind": "number", "text": "5%",    "span": [95, 97], "status": "sourced", "citation": 1}
+      ]
+    },
+    {
+      "span": [117, 143],
+      "text": "HVN is up 21% since entry.",
+      "status": "unsupported",
+      "problems": ["number not in quotes: 21%"]
+    },
+    {
+      "span": [144, 183],
+      "text": "It remains a sensible position to hold.",
+      "status": "inferred"
+    }
+  ]
+}
+```
+
+- The first sentence is **verified**: both parts of the quote were found in `S1`, and `18.0%` and `Harvey Norman` are in them.
+- The second is **derived**: `0.8pp` isn't in any quote, but code recomputes it as `5.0 − 4.2`.
+- The third is **unsupported**: the model cited the right field but wrote `21%` where the source says `18.0`.
+- The fourth is **inferred**: it cites real evidence, but it's a judgement that code can't check.
+
+## Sentence tiers
+
+Each sentence gets one `status`:
+
+| Status | Meaning |
+|--------|---------|
+| `verified` | Every figure, date and name is in the quoted evidence, bound to the right entity and field, and the semantics hold |
+| `derived` | As `verified`, but at least one figure is recomputed from quoted figures — the claim carries the `formula` |
+| `inferred` | Cites real evidence but asserts nothing code can check — typically a judgement or conclusion |
+| `unsupported` | A figure, date or name is not in the quoted evidence |
+| `wrong` | The evidence contradicts the sentence — for example "down 18.0%" when the source says up, or "above the 5% limit" at 4.2% |
+| `miscited` | A quote can't be found in the source it names, or the source doesn't exist |
+| `uncited` | A sentence that makes a claim carries no citation |
+| `exempt` | Structure, not a claim: headings, table headers, list intros, questions to the user |
+| `unchecked` | Code blocks — listed so you know they weren't checked |
+
+Each checkable sentence also carries `claims`. A claim is one figure, date, period, name or semantic assertion (`negation`, `direction`, `comparison`, `condition`, `ranking`, `hedge`, …) with its own `status`:
+
+| Claim status | Meaning |
+|--------------|---------|
+| `sourced` | Found in a quote; `citation` indexes into the sentence's `citations` |
+| `derived` | Recomputed from quoted figures; see `formula` |
+| `wrong` | Contradicted by the evidence; see `problem` |
+| `unsupported` | Not found in the evidence; see `problem` |
+
+### Coverage
+
+`coverage` counts sentences by status. `sentences` is the number of checkable sentences — every status except `exempt` and `unchecked`.
+
+| Field | Formula |
+|-------|---------|
+| `score` | (`verified` + `derived`) ÷ checkable sentences |
+| `supported_score` | (`verified` + `derived` + `inferred`) ÷ checkable sentences |
+
+Both are `null` when an answer has no checkable sentences.
+
+## Reading results
+
+### Non-streaming
+
+The result is under the top-level `orchid` field of the completion:
+
+```json
+{
+  "id": "chatcmpl-abc123",
+  "choices": [...],
+  "orchid": {
+    "provenance":          { "checked": true, "sentences": [...], "coverage": {...}, ... },
+    "provenance_coverage": { "sentences": 4, "verified": 1, ..., "score": 0.5 }
+  }
+}
+```
+
+`provenance_coverage` is a copy of `provenance.coverage`. With the OpenAI Python SDK, read unknown fields from `model_extra`:
+
+```python
+response = client.chat.completions.create(
+    model="orchid01",
+    messages=messages,
+    tools=tools,
+    extra_body={"orchid": {"provenance": True}},
+)
+
+answer     = response.choices[0].message.content
+provenance = response.model_extra["orchid"]["provenance"]   # or response.to_dict()["orchid"]["provenance"]
+
+if provenance["checked"]:
+    print(f"coverage: {provenance['coverage']['score']}")
+    for s in provenance["sentences"]:
+        print(f"[{s['status']:>11}] {s['text']}")
+```
+
+### Streaming
+
+The answer streams as normal `chat.completion.chunk` deltas, with the markers already removed. After the last content chunk and before `data: [DONE]`, Orchid sends one extra chunk with an empty delta and the result:
+
+```
+data: {"choices":[{"delta":{"content":"Harvey Norman (HVN) is up"},"index":0}]}
+
+data: {"choices":[{"delta":{"content":" 18.0% since entry."},"index":0}]}
+
+data: {"choices":[{"delta":{},"index":0}],"orchid":{"provenance":{...},"provenance_coverage":{...}}}
+
+data: [DONE]
+```
+
+The extra chunk may not carry `id`, `object` or `model` — parse it leniently. The OpenAI Python SDK keeps unknown fields, so `orchid` shows up in `chunk.model_extra`:
+
+```python
+stream = client.chat.completions.create(
+    model="orchid01",
+    messages=messages,
+    tools=tools,
+    stream=True,
+    extra_body={"orchid": {"provenance": True}},
+)
+
+answer, provenance = "", None
+for chunk in stream:
+    extra = chunk.model_extra or {}
+    if "orchid" in extra:
+        provenance = extra["orchid"].get("provenance")
+        continue
+    if chunk.choices and chunk.choices[0].delta.content:
+        answer += chunk.choices[0].delta.content
+        print(chunk.choices[0].delta.content, end="", flush=True)
+```
+
+If your SDK validates chunks against a fixed schema and drops unknown fields, read the SSE stream yourself:
+
+```python
+import json
+import httpx
+
+answer, provenance = "", None
+with httpx.stream(
+    "POST",
+    "https://llm.orchid.ac/v1/chat/completions",
+    headers={"Authorization": "Bearer orchid-your-key-here"},
+    json={
+        "model": "orchid01",
+        "messages": messages,
+        "tools": tools,
+        "stream": True,
+        "orchid": {"provenance": True},
+    },
+    timeout=None,
+) as r:
+    for line in r.iter_lines():
+        if not line.startswith("data: ") or line == "data: [DONE]":
+            continue
+        data = json.loads(line[len("data: "):])
+        if "orchid" in data:
+            provenance = data["orchid"].get("provenance")
+            continue
+        for choice in data.get("choices") or []:
+            answer += (choice.get("delta") or {}).get("content") or ""
+```
+
+### Tool-call turns
+
+Only the final text answer of an agent loop is checked. A turn that ends in tool calls returns:
+
+```json
+{ "checked": false, "reason": "tool call turn" }
+```
+
+Keep calling until the model answers in text; that turn carries the real result.
+
+## Rendering click-to-source
+
+Everything you need to highlight evidence is in the result. Two sets of offsets matter, both end-exclusive character ranges:
+
+- **`sentence.span`** and **`claim.span`** index into the clean answer text of that completion — exactly the concatenation of the streamed content deltas.
+- **`citation.offsets`** index into the `content` string of the tool message you sent, found by `citation.tool_call_id`. There is one range per part of a quote that uses `...`.
+
+A minimal renderer in TypeScript:
+
+```typescript
+const TIER_COLOURS: Record<string, string> = {
+  verified: "green", derived: "blue", inferred: "grey",
+  unsupported: "amber", uncited: "amber", wrong: "red", miscited: "purple",
+};
+
+// Tool outputs exactly as you sent them, keyed by tool_call_id.
+const toolOutputs = new Map<string, string>(
+  messages.filter((m) => m.role === "tool").map((m) => [m.tool_call_id, m.content]),
+);
+
+// 1. Colour each sentence of the answer.
+function sentenceSegments(answer: string, provenance: any) {
+  return provenance.sentences.map((s: any) => ({
+    text: answer.slice(s.span[0], s.span[1]),
+    colour: TIER_COLOURS[s.status], // undefined for exempt / unchecked
+    sentence: s,
+  }));
+}
+
+// 2. On click, show the evidence behind a sentence.
+function evidenceFor(sentence: any) {
+  return (sentence.citations ?? [])
+    .filter((c: any) => c.found)
+    .map((c: any) => {
+      const source = toolOutputs.get(c.tool_call_id) ?? "";
+      return {
+        tool: c.tool,
+        highlights: c.offsets.map(([start, end]: [number, number]) => source.slice(start, end)),
+        source, // render with c.offsets highlighted
+      };
+    });
+}
+```
+
+Follow these rules to keep offsets accurate:
+
+- **Keep the raw tool output.** Offsets point into the exact string you sent. If you pretty-print or reformat it for display, the offsets drift.
+- **Don't rewrite the answer.** Store the result as metadata next to the message rather than inserting markup into the text.
+- **Use one completion's text.** Offsets refer to the final text turn only, not a concatenation of turns.
+
+### Lineage
+
+Each citation's `precedents` lists the upstream sources that fed the tool call behind it, nearest first. The top-level `lineage` object explains that per source: for each tool call, which input values came from which earlier sources (or from the user), and any `unsourced` inputs. For a code tool (`"code": true`), this shows which quoted figures went into a computation. Use it to trace a figure back through a chain of tool calls.
+
+```json
+"lineage": {
+  "S7": {
+    "tool": "execute_code",
+    "code": true,
+    "inputs": [{ "value": "7.5", "kind": "number", "from": ["S2"] }],
+    "unsourced": ["14.15"]
+  }
+}
+```
+
+## Truncated tool outputs
+
+If you shorten tool outputs in `messages` to save tokens, send the originals in `orchid.sources`. The model still sees the shortened text, but quotes are checked — and offsets computed — against the full original:
+
+```python
+extra_body={
+    "orchid": {
+        "provenance": True,
+        "sources": [
+            {"tool_call_id": "call_pos", "content": full_position_json},
+        ],
+    }
+}
+```
+
+When you use `orchid.sources`, `citation.offsets` index into the string you passed there, not the shortened message.
+
+## Data retention
+
+The full provenance result contains quotes from your tool outputs. For zero-retention keys, Orchid does not store it — only the `provenance_coverage` counts are kept.
+
+## Limits
+
+- **Evidence, not judgement.** Provenance proves that figures, names and semantics match the evidence. It doesn't prove that a conclusion follows from them — that's what `inferred` means.
+- **Tool outputs only.** It checks only what is cited to `role: "tool"` messages in the request.
+- **Causation and bare status words.** Claims like "driven by" and status words with no figure attached (for example "strong" or "healthy") aren't checked.
+- **Chat completions only.** Provenance isn't available on `/v1/messages` or `/v1/responses`.
+
+## Related
+
+- [Tool calling](/guides/tool-calling) — build the agent loop whose tool outputs become sources
+- [Chat completions](/api-reference/chat-completions) — the `orchid` config object and response block

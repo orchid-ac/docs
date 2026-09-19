@@ -29,7 +29,7 @@ Same body as [`/v1/chat/completions`](/api-reference/chat-completions) (`model`,
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `previous_response_id` | string | — | ID of a prior response on this endpoint. The server replays that conversation history server-side, so you only need to send the new turn in `messages`. |
-| `orchid` | object | — | Orchid-specific config — identical fields to chat completions (see below). |
+| `orchid` | object | — | Orchid-specific config (see below). |
 
 ### The `orchid` config object
 
@@ -37,10 +37,8 @@ Same body as [`/v1/chat/completions`](/api-reference/chat-completions) (`model`,
 |-------|------|---------|-------------|
 | `thinking` | boolean | `false` | Enable deep reasoning mode |
 | `thinking_effort` | string | — | When thinking is on: `none`, `low`, `medium`, or `high` |
-| `dehallucinate` | boolean | `false` | Run the post-reply grounding judge (non-streaming only) |
-| `regenerate` | boolean | `false` | Auto-correct unsupported claims where possible; implies `dehallucinate: true`. See [Hallucination detection](/guides/hallucination-detection). |
-| `context` | string/array | — | Explicit grounding context, bypassing the positional "everything but the last message" fallback |
-| `dehallucinate_effort` | string | `standard` | Grounding judge model tier: `standard`, `medium`, or `high` |
+
+[Provenance](/guides/provenance) (`orchid.provenance`) is not available on this endpoint. Use [`/v1/chat/completions`](/api-reference/chat-completions) for cited, code-checked answers.
 
 ## Response
 
@@ -66,25 +64,19 @@ OpenAI Responses API shape rather than the chat completions shape — output liv
     "total_tokens":  1620
   },
   "orchid": {
-    "mcp_server":              "orchid-finance",
-    "mcp_iterations":          1,
-    "mcp_tool_calls":          [],
-    "dehallucinate_requested": true,
-    "grounded":                true,
-    "score":                   0.97,
-    "flagged_spans":           [],
-    "checked":                 true
+    "mcp_server":     "orchid-finance",
+    "mcp_iterations": 1,
+    "mcp_tool_calls": []
   }
 }
 ```
 
-Use the top-level **`id`** as `previous_response_id` in your next call to continue the conversation. The **`orchid`** block is the same shape used on [chat completions](/api-reference/chat-completions#response) and [messages](/api-reference/messages) — see [Tool calling](/guides/tool-calling#mcp-audit-fields) for the `mcp_*` fields and [Hallucination detection](/guides/hallucination-detection) for the grounding and `span_fixes` fields.
+Use the top-level **`id`** as `previous_response_id` in your next call to continue the conversation. The **`orchid`** block is the same shape used on [chat completions](/api-reference/chat-completions#response) and [messages](/api-reference/messages) — see [Tool calling](/guides/tool-calling#mcp-audit-fields) for the `mcp_*` fields.
 
 ## Behavior shared with the other endpoints
 
 - **Built-in tools** — the `orchid-finance` tool suite runs automatically here too, with no `tools` array required. See [Tool calling](/guides/tool-calling).
 - **Streaming** — `stream: true` is overridden to a non-streamed response whenever a tool call happens mid-response, same as chat completions.
-- **`regenerate`** — implies `dehallucinate: true`; corrected/flagged spans appear in `orchid.span_fixes`.
 
 ## Differences from chat completions
 
@@ -94,7 +86,8 @@ Use the top-level **`id`** as `previous_response_id` in your next call to contin
 | Response shape | `choices[].message` | `output[].content` |
 | `orchid` block | Yes | Yes |
 | Streaming | Yes (disabled during tool calls) | Yes (disabled during tool calls) |
-| `orchid.*` config | Yes | Yes |
+| `orchid.*` config | Yes | Yes, except `provenance` |
+| Provenance | Yes | No |
 
 <Warning>
   There is currently no API to list, retrieve, or delete stored conversation history — `previous_response_id` is the only way to reference it. Avoid sending sensitive data you may later need to delete on demand.
@@ -109,4 +102,3 @@ Same OpenAI-compatible `error` object as [chat completions](/api-reference/chat-
 - [Codex CLI](/integrations/codex) — setup using this endpoint
 - [Chat completions](/api-reference/chat-completions) — the request body this endpoint extends
 - [Tool calling](/guides/tool-calling) — built-in tools and MCP audit fields
-- [Hallucination detection](/guides/hallucination-detection) — `dehallucinate` and `regenerate`

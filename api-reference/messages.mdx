@@ -31,10 +31,6 @@ There is **no** `orchid` object in the JSON body on this route. Use headers inst
 
 | Header | Values |
 |--------|--------|
-| `x-orchid-dehallucinate` | `true` or `false` — set `true` to run the post-reply grounding judge on **non-streaming** completions |
-| `x-orchid-regenerate` | `true` or `false` — set `true` to auto-correct unsupported claims where possible. Implies `x-orchid-dehallucinate: true`. |
-| `x-orchid-context` | Explicit grounding context (string), bypassing the positional "everything but the last message" fallback |
-| `x-orchid-dehallucinate-effort` | Grounding judge model tier: `standard`, `medium`, or `high` |
 | `x-orchid-thinking` | `true` or `false` |
 | `x-orchid-thinking-effort` | `none`, `low`, `medium`, or `high` |
 
@@ -59,23 +55,19 @@ Standard Anthropic Messages response, plus the same top-level **`orchid`** key u
     "output_tokens": 380
   },
   "orchid": {
-    "mcp_server":              "orchid-finance",
-    "mcp_iterations":          1,
-    "mcp_tool_calls":          [],
-    "dehallucinate_requested": true,
-    "grounded":                true,
-    "score":                   0.97,
-    "flagged_spans":           [],
-    "checked":                 true
+    "mcp_server":     "orchid-finance",
+    "mcp_iterations": 1,
+    "mcp_tool_calls": []
   }
 }
 ```
 
-`mcp_server`, `mcp_iterations`, and `mcp_tool_calls` are always present — the built-in `orchid-finance` tool suite runs automatically here too, even though user-defined tool-use blocks aren't supported (see [Tool calling](/guides/tool-calling#mcp-audit-fields)). The `dehallucinate_requested`/`grounded`/`score`/`flagged_spans`/`checked`/`span_fixes` fields follow [Hallucination detection](/guides/hallucination-detection).
+`mcp_server`, `mcp_iterations`, and `mcp_tool_calls` are always present — the built-in `orchid-finance` tool suite runs automatically here too, even though user-defined tool-use blocks aren't supported (see [Tool calling](/guides/tool-calling#mcp-audit-fields)).
 
 ## Limitations
 
 - **Tool-use** and **image** content blocks you define yourself are **not** supported on this façade yet. Use [`/v1/chat/completions`](/api-reference/chat-completions) or [`/v1/responses`](/api-reference/responses) for OpenAI-style tools and multimodal workflows. The built-in `orchid-finance` tools still run automatically on this route (see [Tool calling](/guides/tool-calling)).
+- [Provenance](/guides/provenance) is not available on this route. Use [`/v1/chat/completions`](/api-reference/chat-completions) with `orchid.provenance: true`.
 - If a built-in tool call happens mid-response, the reply is returned non-streamed even if you requested streaming — same behaviour as the other two endpoints.
 - For rate limits and `429` behaviour, see [Rate limits](/api-reference/rate-limits).
 

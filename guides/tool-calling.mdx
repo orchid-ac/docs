@@ -54,7 +54,7 @@ Every response includes an `orchid` block with audit fields describing what the 
 | `mcp_iterations` | Number of tool-call rounds the model took before responding |
 | `mcp_tool_calls` | List of tools called, their arguments, and a preview of each result |
 
-These fields are always present, separate from any `tools` you pass yourself and from the `dehallucinate`/`regenerate` fields described in [Hallucination detection](/guides/hallucination-detection).
+These fields are always present, separate from any `tools` you pass yourself and from the `provenance` fields described in [Provenance](/guides/provenance).
 
 ## Basic example
 
@@ -115,14 +115,15 @@ if response.choices[0].message.tool_calls:
         "content":      json.dumps(result),
     })
     
-    # Get final response
+    # Get final response, with every sentence cited to the tool result and checked
     final = client.chat.completions.create(
         model="orchid01",
         messages=messages,
         tools=tools,
-        extra_body={"orchid": {"dehallucinate": True}},
+        extra_body={"orchid": {"provenance": True}},
     )
     print(final.choices[0].message.content)
+    print(final.model_extra["orchid"]["provenance"]["coverage"])
 ```
 
 ## Your own MCP tools
