@@ -7,7 +7,7 @@ description: Traceable answers — every sentence cited to a tool output and che
 
 Provenance ties every sentence of an answer to the tool output it came from, and checks it.
 
-When you turn it on, the model cites a source after every sentence, quoting it word for word. Orchid then runs deterministic code over the answer — there is no LLM judge. The code finds each quote in the tool output and checks every figure, date, period and name in the sentence against it. It also checks what the sentence says about those figures: direction, comparisons and rules.
+When you turn it on, Orchid checks the answer against the tool outputs you sent, sentence by sentence, with deterministic code — there is no second model judging it. Figures, dates, names and what the sentence says about them are all checked, and anything the evidence doesn't back is flagged rather than passed off as fact.
 
 You get back the same clean answer text as always, plus a per-sentence result you can use to:
 
@@ -17,46 +17,15 @@ You get back the same clean answer text as always, plus a per-sentence result yo
 
 Provenance is available on [`/v1/chat/completions`](/api-reference/chat-completions) only, streaming and non-streaming. It is not available on [`/v1/messages`](/api-reference/messages) or [`/v1/responses`](/api-reference/responses).
 
-## How it works
+## What you send, what you get
 
-1. **Tool outputs become sources.** Every `role: "tool"` message in your request becomes a numbered source — `S1`, `S2`, … — in conversation order. Each tool message needs its standard `tool_call_id`. One output is one source, whatever it holds: a search returning seven articles is a single source, and every quote from any of them cites that one label.
-2. **The model cites as it writes.** Orchid tells the model to end every sentence, bullet and table row with a citation that names a source and quotes it word for word.
-3. **Orchid strips the citations.** The citation markers are removed from the stream before it reaches you, so the text you receive is clean.
-4. **Code checks every sentence.** Orchid locates each quote in its source and swaps in the source's own text, so the check never trusts the model's copy. A page fetched as markdown is also searched as a reader sees it — inline links and invisible characters ignored — and the offsets you get back still point into the output exactly as you sent it. If a quote isn't in the source the model named, Orchid looks for it in the others and checks it there, recording the label the model used as `cited_as`. It then checks:
-   - **Figures, dates, periods and names** — each one must appear in the quoted evidence. Legitimate rewrites are allowed: `0.075` ↔ `7.5%`, `$1,200m` ↔ `$1.2bn`, and sensible rounding.
-   - **Binding** — a figure must belong to the right entity and field. A P&L figure can't be reported as a portfolio weight.
-   - **Semantics** — negation, direction (up vs. down), comparisons against quoted thresholds, rules and conditions, rankings and hedges. Moves the source never describes are flagged.
-   - **Derived figures** — a figure that isn't quoted but can be recomputed from quoted figures (a difference, sum, ratio or percentage change) is marked `derived`, with the formula shown.
-
-Names that you wrote yourself in a user message need no source.
-
-## Stating claims
-
-The model may also state what each figure *is*, after a `|` at the end of the marker:
-
-```
-Harvey Norman (HVN) is up 18.0% since entry, on a 4.2% weight.[[S1: "name": "Harvey Norman" ... "weight_pct": 4.2 ... "pnl_since_entry_pct": 18.0 | HVN: pnl_since_entry_pct = 18.0%; HVN: weight_pct = 4.2%]]
-```
-
-Each claim is `entity: field = value`:
-
-- **entity** — whose figure it is, as the source names it. Left out when the figure belongs to no one entity (a book, a programme total).
-- **field** — the source's own key (`pnl_since_entry_pct`) or the label printed before the value (`EV difference`), never a paraphrase.
-- **value** — the figure exactly as the sentence writes it (`18.0%`, `$105m`, `1.62x`).
-
-Several claims from one quote are separated by `;`. Like the markers themselves, the claims are stripped from the text you receive.
-
-A stated claim is checked by **lookup** — the entity's record, that field, that value — rather than by reading the sentence's wording. A value the data contradicts is `wrong` with certainty, instead of relying on Orchid's reading of which quantity a sentence names. Resolved claims come back on the claim as `declared`:
-
-```json
-{"kind": "number", "text": "18.0%", "span": [26, 31], "status": "sourced", "citation": 0,
- "declared": {"entity": "HVN", "field": "pnl_since_entry_pct"}}
-```
-
-A claim only ever adds certainty. When the model paraphrases the field, names the entity its own way, or states a value the sentence doesn't contain, Orchid ignores the claim and checks the figure exactly as it always did. Figures with no claim are unaffected.
+- **Your tool outputs are the evidence.** Every `role: "tool"` message in the request becomes a numbered source — `S1`, `S2`, … — in conversation order, so each one needs its standard `tool_call_id`. One tool message is one source, whatever it holds: a search returning seven articles is a single source.
+- **The answer text is unchanged.** Whatever the model writes to tie a sentence to its evidence is removed before the text reaches you, streaming included.
+- **The result comes back beside the answer**, per sentence and per claim: a tier, the source and the exact characters in it that back the claim, and a coverage score.
+- **Nothing else changes.** Tools, streaming, and the shape of the completion stay as they are; a request without `orchid.provenance` behaves exactly as before.
 
 <Note>
-  Nothing in your request changes. The model writes these claims on its own; `figures_declared` in `coverage` tells you how often it did.
+  Provenance only checks what a sentence cites to a `role: "tool"` message. Documents pasted into a user or system message are not sources — return them from a tool call instead, see [Tool calling](/guides/tool-calling).
 </Note>
 
 ## Enabling provenance
@@ -84,10 +53,6 @@ curl -s https://llm.orchid.ac/v1/chat/completions \
 ```
 
 Provenance is off by default. Omitting `orchid.provenance` behaves like `false`.
-
-<Note>
-  Provenance only checks what is cited to `role: "tool"` messages in the request. Documents pasted into a user or system message are not sources. Return your data from a tool call instead — see [Tool calling](/guides/tool-calling).
-</Note>
 
 ## Worked example
 
@@ -123,7 +88,7 @@ response = client.chat.completions.create(
 )
 ```
 
-The answer you receive is plain text, with no citation markers:
+The answer you receive is plain text, exactly as it would be without provenance:
 
 ```
 Harvey Norman (HVN) is up 18.0% since entry.
@@ -193,9 +158,9 @@ The provenance result, trimmed for length, rates each sentence:
 ```
 
 - The first sentence is **verified**: both parts of the quote were found in `S1`, and `18.0%` and `Harvey Norman` are in them.
-- The second is **derived**: `0.8pp` isn't in any quote, but code recomputes it as `5.0 − 4.2`.
+- The second is **derived**: `0.8pp` isn't in any quote — it follows from two figures that are, and the claim carries the arithmetic as `formula`.
 - The third is **unsupported**: the model cited the right field but wrote `21%` where the source says `18.0`.
-- The fourth is **inferred**: it cites real evidence, but whether the position is sensible is a judgement code can't check. (A judgement whose only evidence is a quote of a name is `unsupported` instead — a name vouches for the name, not for what is said about it.)
+- The fourth is **inferred**: it cites real evidence, but whether the position is sensible is a judgement code can't check.
 
 ## Sentence tiers
 
@@ -205,14 +170,14 @@ Each sentence gets one `status`:
 |--------|---------|
 | `verified` | Every figure, date and name is in the quoted evidence, bound to the right entity and field, and the semantics hold |
 | `derived` | As `verified`, but at least one figure is recomputed from quoted figures — the claim carries the `formula` |
-| `inferred` | Cites real evidence but asserts nothing code can check — typically a judgement or conclusion. A sentence whose figures all check out but which also says something its evidence doesn't cover (a clause with no checked claim and little wording in common with the source) is capped here, with the uncovered text listed in `unchecked_text` |
-| `unsupported` | A figure, date or name is not in the quoted evidence — or the only evidence is a figure the model wrote into its own tool call (a number typed into code, a search query the tool echoed), or a quote that only names the subject |
+| `inferred` | Cites real evidence but asserts nothing checkable — typically a judgement or conclusion. A sentence whose figures check out but which also says something its evidence doesn't cover is capped here, and the uncovered part is listed in `unchecked_text` |
+| `unsupported` | A figure, date or name is not in the quoted evidence, or the evidence doesn't reach the claim made about it |
 | `wrong` | The evidence contradicts the sentence — for example "down 18.0%" when the source says up, or "above the 5% limit" at 4.2% |
 | `miscited` | A quote can't be found in the source it names, the source doesn't exist, or a `...` quote joins fields from different records |
 | `uncited` | A sentence that makes a claim carries no citation |
 | `exempt` | Structure, not a claim: headings, table headers, list intros, questions to the user |
-| `unchecked` | Code blocks — listed so you know they weren't checked. An untagged block written as prose is checked as prose |
-| `absent` | Says what the sources don't show ("The sources do not show Castellan's revenue"). Checked against every record — `wrong` if the data does hold it — and left out of the score |
+| `unchecked` | Code blocks — listed so you know they weren't checked |
+| `absent` | Says what the sources don't show ("The sources do not show Castellan's revenue"). `wrong` if the data does hold it; left out of the score otherwise |
 
 Each checkable sentence also carries `claims`. A claim is one figure, date, period, name or semantic assertion (`negation`, `direction`, `comparison`, `condition`, `ranking`, `hedge`, …) with its own `status`:
 
@@ -223,7 +188,7 @@ Each checkable sentence also carries `claims`. A claim is one figure, date, peri
 | `wrong` | Contradicted by the evidence; see `problem` |
 | `unsupported` | Not found in the evidence; see `problem` |
 
-A claim the model stated outright and Orchid resolved by lookup also carries `declared`: `{"entity": "HVN", "field": "pnl_since_entry_pct"}` — see [Stating claims](#stating-claims). Clients use it to show what was looked up.
+A figure checked against a named field of a named record also carries `declared`: `{"entity": "HVN", "field": "pnl_since_entry_pct"}` — the record and field the figure was matched to. Clients use it to show where a number came from.
 
 ### Coverage
 
@@ -236,7 +201,7 @@ A claim the model stated outright and Orchid resolved by lookup also carries `de
 | `strict_score` | (`verified` + `derived`) ÷ distinct sentences, counting code blocks against it — built to be optimised against: repeating a verified sentence dilutes nothing, and a claim can't hide in a code block |
 | `failed` | Number of `unsupported`, `wrong`, `miscited` and `uncited` sentences |
 | `figures` | Figures in cited sentences |
-| `figures_declared` | How many of those the model stated outright as claims — the share tells you how much of the answer was checked by lookup rather than by reading |
+| `figures_declared` | How many of those carry a `declared` record and field |
 
 `score` and `supported_score` are `null` when an answer has no checkable sentences; `strict_score` is then `0`.
 
@@ -278,7 +243,7 @@ if provenance["checked"]:
 
 ### Streaming
 
-The answer streams as normal `chat.completion.chunk` deltas, with the markers already removed. After the last content chunk and before `data: [DONE]`, Orchid sends one extra chunk with an empty delta and the result:
+The answer streams as normal `chat.completion.chunk` deltas, with the citation markup already removed. After the last content chunk and before `data: [DONE]`, Orchid sends one extra chunk with an empty delta and the result:
 
 ```
 data: {"choices":[{"delta":{"content":"Harvey Norman (HVN) is up"},"index":0}]}
@@ -443,7 +408,7 @@ The full provenance result contains quotes from your tool outputs. For zero-rete
 
 - **Evidence, not judgement.** Provenance proves that figures, names and semantics match the evidence. It doesn't prove that a conclusion follows from them — that's what `inferred` means.
 - **Tool outputs only.** It checks only what is cited to `role: "tool"` messages in the request.
-- **Names in prose.** In a document or web page, a name counts as vouched for if it appears anywhere in the cited source, not only in the quoted passage — a weaker check than for rows of data, where the row says whose figure it is. Nationalities, regions and party tags ("British", "the Gulf", "R-Iowa") are not treated as names at all.
+- **Names in prose.** In a document or web page, a name is checked against the whole cited source, not only the quoted passage — a weaker check than for structured data, where a row says whose figure it is. Nationalities, regions and party tags ("British", "the Gulf", "R-Iowa") aren't treated as names.
 - **Causation and bare status words.** Claims like "driven by" and status words with no figure attached (for example "strong" or "healthy") aren't checked.
 - **Chat completions only.** Provenance isn't available on `/v1/messages` or `/v1/responses`.
 
