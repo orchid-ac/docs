@@ -19,16 +19,45 @@ Provenance is available on [`/v1/chat/completions`](/api-reference/chat-completi
 
 ## How it works
 
-1. **Tool outputs become sources.** Every `role: "tool"` message in your request becomes a numbered source — `S1`, `S2`, … — in conversation order. Each tool message needs its standard `tool_call_id`.
+1. **Tool outputs become sources.** Every `role: "tool"` message in your request becomes a numbered source — `S1`, `S2`, … — in conversation order. Each tool message needs its standard `tool_call_id`. One output is one source, whatever it holds: a search returning seven articles is a single source, and every quote from any of them cites that one label.
 2. **The model cites as it writes.** Orchid tells the model to end every sentence, bullet and table row with a citation that names a source and quotes it word for word.
 3. **Orchid strips the citations.** The citation markers are removed from the stream before it reaches you, so the text you receive is clean.
-4. **Code checks every sentence.** Orchid locates each quote in its source and swaps in the source's own text, so the check never trusts the model's copy. It then checks:
+4. **Code checks every sentence.** Orchid locates each quote in its source and swaps in the source's own text, so the check never trusts the model's copy. A page fetched as markdown is also searched as a reader sees it — inline links and invisible characters ignored — and the offsets you get back still point into the output exactly as you sent it. If a quote isn't in the source the model named, Orchid looks for it in the others and checks it there, recording the label the model used as `cited_as`. It then checks:
    - **Figures, dates, periods and names** — each one must appear in the quoted evidence. Legitimate rewrites are allowed: `0.075` ↔ `7.5%`, `$1,200m` ↔ `$1.2bn`, and sensible rounding.
    - **Binding** — a figure must belong to the right entity and field. A P&L figure can't be reported as a portfolio weight.
    - **Semantics** — negation, direction (up vs. down), comparisons against quoted thresholds, rules and conditions, rankings and hedges. Moves the source never describes are flagged.
    - **Derived figures** — a figure that isn't quoted but can be recomputed from quoted figures (a difference, sum, ratio or percentage change) is marked `derived`, with the formula shown.
 
 Names that you wrote yourself in a user message need no source.
+
+## Stating claims
+
+The model may also state what each figure *is*, after a `|` at the end of the marker:
+
+```
+Harvey Norman (HVN) is up 18.0% since entry, on a 4.2% weight.[[S1: "name": "Harvey Norman" ... "weight_pct": 4.2 ... "pnl_since_entry_pct": 18.0 | HVN: pnl_since_entry_pct = 18.0%; HVN: weight_pct = 4.2%]]
+```
+
+Each claim is `entity: field = value`:
+
+- **entity** — whose figure it is, as the source names it. Left out when the figure belongs to no one entity (a book, a programme total).
+- **field** — the source's own key (`pnl_since_entry_pct`) or the label printed before the value (`EV difference`), never a paraphrase.
+- **value** — the figure exactly as the sentence writes it (`18.0%`, `$105m`, `1.62x`).
+
+Several claims from one quote are separated by `;`. Like the markers themselves, the claims are stripped from the text you receive.
+
+A stated claim is checked by **lookup** — the entity's record, that field, that value — rather than by reading the sentence's wording. A value the data contradicts is `wrong` with certainty, instead of relying on Orchid's reading of which quantity a sentence names. Resolved claims come back on the claim as `declared`:
+
+```json
+{"kind": "number", "text": "18.0%", "span": [26, 31], "status": "sourced", "citation": 0,
+ "declared": {"entity": "HVN", "field": "pnl_since_entry_pct"}}
+```
+
+A claim only ever adds certainty. When the model paraphrases the field, names the entity its own way, or states a value the sentence doesn't contain, Orchid ignores the claim and checks the figure exactly as it always did. Figures with no claim are unaffected.
+
+<Note>
+  Nothing in your request changes. The model writes these claims on its own; `figures_declared` in `coverage` tells you how often it did.
+</Note>
 
 ## Enabling provenance
 
@@ -100,7 +129,7 @@ The answer you receive is plain text, with no citation markers:
 Harvey Norman (HVN) is up 18.0% since entry.
 At 4.2% of the portfolio, it sits 0.8pp below the 5% single-name limit.
 HVN is up 21% since entry.
-It remains a sensible position to hold.
+It remains within the single-name limit, so a sensible position to hold.
 ```
 
 The provenance result, trimmed for length, rates each sentence:
@@ -116,7 +145,8 @@ The provenance result, trimmed for length, rates each sentence:
   "coverage": {
     "sentences": 4, "verified": 1, "derived": 1, "inferred": 1, "unsupported": 1,
     "wrong": 0, "miscited": 0, "uncited": 0, "exempt": 0, "unchecked": 0, "absent": 0,
-    "score": 0.5, "supported_score": 0.75, "strict_score": 0.5, "failed": 1
+    "score": 0.5, "supported_score": 0.75, "strict_score": 0.5, "failed": 1,
+    "figures": 5, "figures_declared": 0
   },
   "sentences": [
     {
@@ -154,8 +184,8 @@ The provenance result, trimmed for length, rates each sentence:
       "problems": ["number not in quotes: 21%"]
     },
     {
-      "span": [144, 183],
-      "text": "It remains a sensible position to hold.",
+      "span": [144, 215],
+      "text": "It remains within the single-name limit, so a sensible position to hold.",
       "status": "inferred"
     }
   ]
@@ -165,7 +195,7 @@ The provenance result, trimmed for length, rates each sentence:
 - The first sentence is **verified**: both parts of the quote were found in `S1`, and `18.0%` and `Harvey Norman` are in them.
 - The second is **derived**: `0.8pp` isn't in any quote, but code recomputes it as `5.0 − 4.2`.
 - The third is **unsupported**: the model cited the right field but wrote `21%` where the source says `18.0`.
-- The fourth is **inferred**: it cites real evidence, but it's a judgement that code can't check.
+- The fourth is **inferred**: it cites real evidence, but whether the position is sensible is a judgement code can't check. (A judgement whose only evidence is a quote of a name is `unsupported` instead — a name vouches for the name, not for what is said about it.)
 
 ## Sentence tiers
 
@@ -193,6 +223,8 @@ Each checkable sentence also carries `claims`. A claim is one figure, date, peri
 | `wrong` | Contradicted by the evidence; see `problem` |
 | `unsupported` | Not found in the evidence; see `problem` |
 
+A claim the model stated outright and Orchid resolved by lookup also carries `declared`: `{"entity": "HVN", "field": "pnl_since_entry_pct"}` — see [Stating claims](#stating-claims). Clients use it to show what was looked up.
+
 ### Coverage
 
 `coverage` counts sentences by status. `sentences` is the number of checkable sentences — every status except `exempt`, `unchecked` and `absent`.
@@ -203,6 +235,8 @@ Each checkable sentence also carries `claims`. A claim is one figure, date, peri
 | `supported_score` | (`verified` + `derived` + `inferred`) ÷ checkable sentences |
 | `strict_score` | (`verified` + `derived`) ÷ distinct sentences, counting code blocks against it — built to be optimised against: repeating a verified sentence dilutes nothing, and a claim can't hide in a code block |
 | `failed` | Number of `unsupported`, `wrong`, `miscited` and `uncited` sentences |
+| `figures` | Figures in cited sentences |
+| `figures_declared` | How many of those the model stated outright as claims — the share tells you how much of the answer was checked by lookup rather than by reading |
 
 `score` and `supported_score` are `null` when an answer has no checkable sentences; `strict_score` is then `0`.
 
@@ -324,7 +358,7 @@ Keep calling until the model answers in text; that turn carries the real result.
 Everything you need to highlight evidence is in the result. Two sets of offsets matter, both end-exclusive character ranges:
 
 - **`sentence.span`** and **`claim.span`** index into the clean answer text of that completion — exactly the concatenation of the streamed content deltas.
-- **`citation.offsets`** index into the `content` string of the tool message you sent, found by `citation.tool_call_id`. There is one range per part of a quote that uses `...`.
+- **`citation.offsets`** index into the `content` string of the tool message you sent, found by `citation.tool_call_id`. There is one range per part of a quote that uses `...`. Always resolve the output by `citation.tool_call_id` (or `citation.source`), not by the label the model wrote: when it names a source that doesn't exist, or one the quote isn't in, the citation points at the source the quote was actually found in and carries the model's label as `cited_as`.
 
 A minimal renderer in TypeScript:
 
@@ -409,6 +443,7 @@ The full provenance result contains quotes from your tool outputs. For zero-rete
 
 - **Evidence, not judgement.** Provenance proves that figures, names and semantics match the evidence. It doesn't prove that a conclusion follows from them — that's what `inferred` means.
 - **Tool outputs only.** It checks only what is cited to `role: "tool"` messages in the request.
+- **Names in prose.** In a document or web page, a name counts as vouched for if it appears anywhere in the cited source, not only in the quoted passage — a weaker check than for rows of data, where the row says whose figure it is. Nationalities, regions and party tags ("British", "the Gulf", "R-Iowa") are not treated as names at all.
 - **Causation and bare status words.** Claims like "driven by" and status words with no figure attached (for example "strong" or "healthy") aren't checked.
 - **Chat completions only.** Provenance isn't available on `/v1/messages` or `/v1/responses`.
 

@@ -53,7 +53,7 @@ Toggle `/toggle-technical` to switch how completed actions render: **technical**
 
 ## Provenance
 
-Every sentence Orchid writes is cited to a tool output, and the gateway checks each figure, date, name and claim against it with code, not another model (see [Provenance](/guides/provenance)). Cited figures are coloured by tier as the answer renders, and a summary line under each answer counts what was verified. Run `/sources` (or click the answer) to list every checked sentence and open the tool output behind any claim, with the quoted text highlighted. It's on by default; toggle it with `/provenance`, run headless with `orchid run --provenance` / `--no-provenance`, or set it in [Configuration](/cli/configuration).
+Every sentence Orchid writes is cited to a tool output, and the gateway checks each figure, date, name and claim against it with code, not another model (see [Provenance](/guides/provenance)). Cited figures are coloured by tier as the answer renders — flagged claims are highlighted rather than recoloured, so a flag never reads as markdown emphasis, and names are marked only when the data contradicts them — and a summary line under each answer counts what was verified. Run `/sources` (or click the answer) to list every checked sentence and open the tool output behind any claim, with the quoted text highlighted. It's on by default; toggle it with `/provenance`, run headless with `orchid run --provenance` / `--no-provenance`, or set it in [Configuration](/cli/configuration).
 
 ## Plugins
 

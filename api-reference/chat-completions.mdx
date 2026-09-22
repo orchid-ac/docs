@@ -43,7 +43,7 @@ Optional body key **`orchid`** controls Orchid-specific behaviour on **`/v1/chat
 |-------|------|---------|-------------|
 | `thinking` | boolean | `false` | Enable deep reasoning mode |
 | `thinking_effort` | string | — | When thinking is on: `none`, `low`, `medium`, or `high` |
-| `provenance` | boolean | `false` | Set `true` to have the model cite a `role: "tool"` message for every sentence and check each claim against it with deterministic code (streaming and non-streaming). See [Provenance](/guides/provenance). |
+| `provenance` | boolean | `false` | Set `true` to have the model cite a `role: "tool"` message for every sentence and check each claim against it with deterministic code (streaming and non-streaming). One tool message is one source, however many results it holds. See [Provenance](/guides/provenance). |
 | `sources` | array | — | With `provenance`: full original tool outputs, as `[{"tool_call_id": "...", "content": "..."}]`, for any you shortened in `messages`. Quotes and offsets are checked against these. |
 | `memory` | boolean | `false` | Set `true` to enable persistent per-API-key memory. Facts from past conversations are retrieved and injected as context; new exchanges are written back asynchronously. Skipped for zero-retention keys. |
 
@@ -102,8 +102,8 @@ Standard OpenAI chat completion response, plus an `orchid` field:
 
 | Field | Description |
 |-------|-------------|
-| `provenance` | The full result: `checked`, `sources`, per-sentence `sentences` (status, citations with `offsets` into your tool messages, and claims), `coverage`, and `lineage`. On a turn that ends in tool calls it is `{"checked": false, "reason": "tool call turn"}`. |
-| `provenance_coverage` | A copy of `provenance.coverage`: sentence counts per status, `score`, and `supported_score` |
+| `provenance` | The full result: `checked`, `sources`, per-sentence `sentences` (status, citations with `offsets` into your tool messages, and claims), `coverage`, and `lineage`. On a turn that ends in tool calls it is `{"checked": false, "reason": "tool call turn"}`. A citation may carry `cited_as` (the model named a source the quote was not in, so it was checked where the quote is), and a claim may carry `declared` — the entity and field the model stated for that figure, which Orchid confirmed by lookup. |
+| `provenance_coverage` | A copy of `provenance.coverage`: sentence counts per status, `score`, `supported_score`, `strict_score`, `failed`, and `figures` / `figures_declared` (how many cited figures the model stated outright) |
 
 With `stream: true`, the same `orchid` object arrives in one extra chunk with an empty `delta`, sent after the last content chunk and before `data: [DONE]`. See [Provenance](/guides/provenance#reading-results) for the full schema and how to read it.
 
