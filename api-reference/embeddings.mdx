@@ -1,0 +1,55 @@
+---
+title: Embeddings
+description: POST /v1/embeddings
+---
+
+## Endpoint
+
+```
+POST https://llm.orchid.ac/v1/embeddings
+```
+
+OpenAI-shaped, so any client library works unchanged. Use it to vectorise your own documents
+without handing them to a third-party index.
+
+The model is open-weight on purpose: the same weights run in a container on your own hardware and
+produce the same vectors, so an index you build here stays valid if you move on-premise.
+
+## Request
+
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Bearer <your-orchid-key>` |
+| `Content-Type` | `application/json` |
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `input` | string or array of strings | required. One text, or a batch |
+| `model` | string | `orchid-embed-01` |
+
+```bash
+curl https://llm.orchid.ac/v1/embeddings \
+  -H "Authorization: Bearer $ORCHID_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "orchid-embed-01", "input": "senior secured term loan"}'
+```
+
+## Response
+
+Vectors are 1024-dimensional.
+
+```json
+{
+  "object": "list",
+  "model":  "orchid-embed-01",
+  "data": [
+    { "object": "embedding", "index": 0, "embedding": [0.0123, -0.0456, "..."] }
+  ],
+  "usage": { "prompt_tokens": 3, "total_tokens": 3 }
+}
+```
+
+<Note>
+  `orchid-embed-01` is not listed by [GET /v1/models](/api-reference/models) — that endpoint lists
+  models you can send messages to. Use the id directly.
+</Note>

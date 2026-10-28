@@ -1,0 +1,92 @@
+---
+title: Automatic routing
+description: Let orchid-auto pick the model per request
+---
+
+## What it does
+
+Send `model: "orchid-auto"` and the gateway picks which model actually answers, per request. It
+classifies the task, then chooses the cheapest model whose expected quality on that task is
+within a tolerance you set. Most requests do not need the strongest model, and the router is how
+you stop paying for it on the ones that don't.
+
+```python
+response = client.chat.completions.create(
+    model="orchid-auto",
+    messages=[{"role": "user", "content": "Summarise this filing..."}],
+    extra_body={"orchid": {"router": {"tier": "balanced"}}},
+)
+
+print(response.model)  # the model that actually ran, e.g. "orchid01"
+```
+
+<Warning>
+  The tier is **not** part of the model id. `model: "orchid-auto@balanced"` is rejected with a
+  `400`. Pass the tier in the `orchid.router` object, as above.
+</Warning>
+
+## Tiers
+
+A tier is a quality allowance: how much measured quality you will give up to spend less.
+
+| Tier | Allowance | What it means |
+|------|-----------|---------------|
+| `max` | 0% | Only switches where the cheaper model scores as well or better |
+| `balanced` | 5% | The default. The smallest gap that is distinguishable from noise — about 36 Elo |
+| `economy` | 10% | About 70 Elo. A visible but modest difference, for firms that would rather spend less |
+
+`balanced` is the knee of the savings curve: on a typical traffic mix it saved 26% on Anthropic
+models and 82% on OpenAI models, for an average loss of 1.7 and 0.7 points. Tightening to 2%
+saved nothing; loosening past 7% roughly doubles the loss for 3 to 6 points more saving.
+
+The deployment's default tier applies when you send none, and `quality` is still accepted as an
+earlier name for `max`.
+
+## Options
+
+Pass `orchid.router` as an object, or as a bare string to set the tier alone
+(`"orchid": {"router": "economy"}`).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tier` | string | `max`, `balanced` or `economy` |
+| `allowed_models` | array | Restrict routing to these model ids or patterns |
+| `excluded_models` | array | Keep the router off these models |
+
+## What came back
+
+Every routed response carries `orchid.routing`, so you can see what was chosen and why.
+
+```json
+{
+  "orchid": {
+    "routing": {
+      "requested":       "orchid-auto",
+      "model":           "orchid01",
+      "request_id":      "ff8c05e9cafe8e10",
+      "tier":            "economy",
+      "task":            "rewrite",
+      "task_confidence": 0.635,
+      "reason":          "fallback:task_not_profiled",
+      "baseline_model":  "orchid01"
+    }
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `model` | The model that actually ran. Also the top-level `model` on the response |
+| `tier` | The allowance in force for this request |
+| `task` / `task_confidence` | The task the classifier inferred, and how sure it was |
+| `reason` | Why this model won. `fallback:task_not_profiled` means there are no scores for this task yet, so the baseline answered |
+| `request_id` | Pass this to [POST /v1/feedback](/api-reference/feedback) to rate the answer |
+
+## Teaching the router
+
+Routing scores are learned per firm, from the feedback the gateway sees: thumbs up and down sent
+to [`/v1/feedback`](/api-reference/feedback), plus the regenerations and model switches it
+observes. A deployment with no scores yet routes to the baseline model and says so in `reason`.
+
+`orchid-auto` appears in [GET /v1/models](/api-reference/models) only once the deployment has
+scores. Its entry lists `routes_between`, the available `tiers`, and the `default_tier`.

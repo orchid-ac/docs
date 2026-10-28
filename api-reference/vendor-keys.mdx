@@ -1,0 +1,64 @@
+---
+title: Vendor keys
+description: Store your own model provider credentials
+---
+
+Store your firm's own Anthropic or OpenAI key and the models that need it become callable, on
+your licence and your rate limits rather than Orchid's. One key covers every model of that
+vendor.
+
+Models you have no credential for are still listed by
+[GET /v1/models](/api-reference/models) with `needs_key: true` — so you can be asked for the key,
+rather than never being shown the model.
+
+## Read
+
+```
+GET /v1/vendor-keys
+```
+
+Per vendor, whether the organisation and you have a key stored. Only the last four characters are
+ever returned; the key itself is never read back.
+
+```bash
+curl https://llm.orchid.ac/v1/vendor-keys \
+  -H "Authorization: Bearer $ORCHID_API_KEY"
+```
+
+## Store
+
+```
+PUT /v1/vendor-keys
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `scope` | string | required. `org` or `user` |
+| `vendor` | string | required. `anthropic` or `openai` |
+| `key` | string | required |
+
+```bash
+curl -X PUT https://llm.orchid.ac/v1/vendor-keys \
+  -H "Authorization: Bearer $ORCHID_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"scope": "org", "vendor": "anthropic", "key": "sk-ant-..."}'
+```
+
+Storing the organisation's key needs an org admin. Your own key is used instead of the
+organisation's, for you.
+
+## Remove
+
+```
+DELETE /v1/vendor-keys
+```
+
+Takes `scope` and `vendor`. Both `PUT` and `DELETE` return the same view as `GET`.
+
+## Errors
+
+| Status | Code | Cause |
+|--------|------|-------|
+| `400` | `invalid_vendor_key` | Unknown vendor, bad scope, or a key the vendor would reject |
+| `403` | `not_an_admin` | Only an org admin can set the organisation's key |
+| `503` | `vendor_keys_unavailable` | Key storage is not configured on this deployment |

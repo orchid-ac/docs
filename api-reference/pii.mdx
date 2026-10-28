@@ -1,0 +1,159 @@
+---
+title: PII protection
+description: Scan, mask, and set the policy for personal data
+---
+
+Six endpoints that let you see what the gateway would find in a text, mask it, and set the policy
+that governs model traffic. Detection runs in three layers — patterns, your own terms, and a
+model — and the most certain layer wins where findings overlap.
+
+<Note>
+  On a self-hosted deployment the detection model runs in its own container, offline, with the
+  model baked into the image. The text being scanned never leaves the box. See
+  [Production hardening](/self-hosting/production-hardening).
+</Note>
+
+## Entity types and actions
+
+| Entity types | |
+|---|---|
+| `person`, `email`, `phone`, `iban`, `card`, `account_number`, `national_id`, `address`, `date_of_birth`, `custom` | |
+
+| Action | What happens to a finding |
+|--------|---------------------------|
+| `allow` | Nothing. It passes through |
+| `mask` | Replaced with a consistent stand-in |
+| `redact` | Removed |
+| `block` | The request is refused |
+
+## Scan
+
+```
+POST /v1/pii/scan
+```
+
+What the policy would find in each text, and what it would do about it. Your text comes back to
+you and nothing is stored. Detection is always on here whatever the policy says about model
+traffic — you are asking precisely what would be found.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `texts` | array | Up to 256 strings. Or send `text` for one |
+
+```bash
+curl https://llm.orchid.ac/v1/pii/scan \
+  -H "Authorization: Bearer $ORCHID_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Wire to IBAN GB29NWBK60161331926819 for A. Okutu"}'
+```
+
+```json
+{
+  "results": [
+    [
+      { "type": "iban",   "start": 8,  "end": 30, "text": "GB29...", "layer": "pattern", "action": "mask" },
+      { "type": "person", "start": 35, "end": 43, "text": "A. Okutu", "layer": "model",  "action": "mask" }
+    ]
+  ],
+  "model": "ready"
+}
+```
+
+## Pseudonymize
+
+```
+POST /v1/pii/pseudonymize
+```
+
+Mask texts bound somewhere other than a model — a web search, a PDF parser, a log — with the same
+stand-ins a model call would get. Takes the same body as `scan`.
+
+`mapping` maps each stand-in back to the real value so you can restore an answer. It is your data
+and is not kept here.
+
+```json
+{
+  "texts":   ["Wire to IBAN [IBAN_1] for [PERSON_1]"],
+  "mapping": { "[IBAN_1]": "GB29NWBK60161331926819", "[PERSON_1]": "A. Okutu" },
+  "summary": { "iban": 1, "person": 1 }
+}
+```
+
+A text whose policy action is `block` returns an error rather than a masked string.
+
+## Read the policy
+
+```
+GET /v1/pii/policy
+```
+
+Returns the organisation's floor, your own layer, and the merge of the two.
+
+```json
+{
+  "effective":    { "...": "the policy actually in force" },
+  "org":          { "...": "the organisation's floor" },
+  "user":         { "...": "your layer, or null" },
+  "terms":        { "org": 12, "user": 3 },
+  "source":       "org",
+  "storage":      "client_db",
+  "editable":     { "org": false, "user": true },
+  "entity_types": ["person", "email", "..."],
+  "actions":      ["allow", "mask", "redact", "block"]
+}
+```
+
+`terms` holds counts, not the terms themselves — the gateway only ever holds their hashes.
+
+## Write the policy
+
+```
+PUT /v1/pii/policy
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `scope` | string | `user` or `org`. Defaults to `user` |
+| `policy` | object | required |
+
+A user's layer can only **tighten** the organisation's, which is enforced when the two are
+merged. Changing the organisation's policy needs an org admin — see
+[Organisation members](/api-reference/org-members).
+
+Returns the same view as `GET /v1/pii/policy`.
+
+## Custom terms
+
+```
+POST   /v1/pii/terms
+DELETE /v1/pii/terms
+```
+
+Your own names — a deal codename, a counterparty, a fund — detected as reliably as a pattern.
+The term layer outranks both patterns and the model.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `scope` | string | `user` or `org`. Defaults to `user` |
+| `text` | string | required. The term itself |
+| `type` | string | Optional entity type. Defaults to `custom` |
+| `action` | string | Optional. Overrides the policy's action for this term |
+
+```bash
+curl https://llm.orchid.ac/v1/pii/terms \
+  -H "Authorization: Bearer $ORCHID_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"scope": "org", "text": "Project Falcon", "action": "block"}'
+```
+
+The text is written to your firm's own database, and only its hash is ever read back. `DELETE`
+takes `scope` and `text`.
+
+## Errors
+
+| Status | Code | Cause |
+|--------|------|-------|
+| `400` | `invalid_request` | Bad scope, missing `text`, or a malformed policy |
+| `403` | `pii_policy_forbidden` | Only an org admin can change the organisation's policy |
+| `500` | `pii_policy_invalid` | The stored policy will not parse |
+| `503` | `pii_unavailable` | The detection model or the policy store is unreachable |

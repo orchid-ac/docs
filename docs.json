@@ -60,6 +60,7 @@
               "guides/provenance",
               "guides/critical-thinking",
               "guides/tool-calling",
+              "guides/routing",
               "guides/max-tokens",
               "guides/webhooks"
             ]
@@ -107,10 +108,22 @@
               "api-reference/responses",
               "api-reference/messages",
               "api-reference/models",
+              "api-reference/embeddings",
+              "api-reference/files",
+              "api-reference/feedback",
               "api-reference/rate-limits",
               "api-reference/usage",
               "api-reference/health",
               "api-reference/webhooks"
+            ]
+          },
+          {
+            "group": "Administration",
+            "pages": [
+              "api-reference/pii",
+              "api-reference/vendor-keys",
+              "api-reference/org-members",
+              "api-reference/preferences"
             ]
           }
         ]
