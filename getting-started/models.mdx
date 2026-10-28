@@ -3,11 +3,28 @@ title: Models
 description: orchid01 standard and thinking modes
 ---
 
+## The catalog
+
+Your key can call several models. `orchid01` is Orchid's finance-native model and the one to
+reach for by default, but the hosted gateway also serves Anthropic, OpenAI and Fireworks models,
+and `orchid-auto` picks one per request for you.
+
+| Model id | Runs on |
+|----------|---------|
+| `orchid-auto` | Routes between everything below — see [Automatic routing](/guides/routing) |
+| `orchid01` | Orchid's finance-native model |
+| `kimi-k3-fireworks` | Fireworks |
+| `claude-sonnet-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`, `claude-opus-5-5` | Anthropic |
+| `gpt-6-sol`, `gpt-6-luna`, `gpt-6-1-sol`, `gpt-6-astra` | OpenAI |
+
+Read [GET /v1/models](/api-reference/models) for the models **your** key may call — the list is
+per key, so a restricted key sees fewer than the table above. A model you have no credential for
+is listed with `needs_key: true`; store one with
+[PUT /v1/vendor-keys](/api-reference/vendor-keys) to make it callable.
+
 ## orchid01
 
-orchid01 is Orchid's finance-native model. Use model id **`orchid01`** in all requests. The catalog is also available from [GET /v1/models](/api-reference/models).
-
-There are two modes — standard and thinking — controlled via the **`orchid`** object on **`/v1/chat/completions`**, or via headers on **`/v1/messages`** (see below).
+orchid01 has two modes — standard and thinking — controlled via the **`orchid`** object on **`/v1/chat/completions`**, or via headers on **`/v1/messages`** (see below).
 
 ## Standard mode (default)
 

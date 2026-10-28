@@ -1,0 +1,38 @@
+---
+title: Preferences
+description: GET /v1/preferences
+---
+
+## Endpoint
+
+```
+GET https://llm.orchid.ac/v1/preferences
+```
+
+Your firm's definitions, conventions and templates, resolved for the calling key. They live in
+your own database — this endpoint is how a client that runs without Studio reads the same
+entries Studio does.
+
+```bash
+curl https://llm.orchid.ac/v1/preferences \
+  -H "Authorization: Bearer $ORCHID_API_KEY"
+```
+
+## Response
+
+```json
+{
+  "entries": [
+    { "kind": "definition", "name": "EBITDA", "body": "...", "scope": "org", "file_name": null }
+  ],
+  "storage": "client_db"
+}
+```
+
+Entries resolve organisation first, then team, then user, with the most specific winning per
+`kind` and `name`. Team entries are left out rather than guessed at, because the gateway knows no
+team membership.
+
+| Status | Code | Cause |
+|--------|------|-------|
+| `503` | `preferences_unavailable` | Your database is unreachable |

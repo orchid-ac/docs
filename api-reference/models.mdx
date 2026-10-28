@@ -3,28 +3,98 @@ title: Models
 description: GET /v1/models
 ---
 
-## List models
+## Endpoint
 
 ```
 GET https://llm.orchid.ac/v1/models
 ```
 
-Returns available models for your API key. Use the catalog id **`orchid01`** in request bodies; the list reflects what your key may call.
+Returns the models your API key may call. The list is per key, not per deployment: a key
+restricted to an approved set sees only that set, so read this endpoint rather than hard-coding
+a catalog.
 
 ```bash
 curl https://llm.orchid.ac/v1/models \
-  -H "Authorization: Bearer orchid-your-key-here"
+  -H "Authorization: Bearer $ORCHID_API_KEY"
 ```
+
+## Response
+
+Two views of the same catalog in one body. `data` is the OpenAI-compatible list, so an OpenAI
+client reads it unchanged. `models` is the same entries with everything Orchid knows about each
+one — context window, pricing, capabilities, whose credential it runs on.
 
 ```json
 {
   "object": "list",
   "data": [
+    { "id": "orchid-auto", "object": "model", "owned_by": "orchid" },
+    { "id": "orchid01",    "object": "model", "owned_by": "orchid" }
+  ],
+  "models": [
     {
-      "id":       "orchid01",
-      "object":   "model",
-      "owned_by": "orchid"
+      "id":           "orchid01",
+      "object":       "model",
+      "owned_by":     "orchid",
+      "slug":         "orchid01",
+      "display_name": "Orchid 01",
+      "context_window":    1048576,
+      "max_output_tokens": 32768,
+      "cost":        { "input": 5.0, "output": 25.0 },
+      "tool_mode":   "function",
+      "supported_reasoning_levels": [],
+      "orchid": {
+        "provenance":        true,
+        "thinking":          false,
+        "tools":             true,
+        "credential":        "platform",
+        "provider":          "openai_compat",
+        "credential_set":    true,
+        "needs_key":         false,
+        "key_group":         "orchid",
+        "background_model":  "claude-haiku-5-5"
+      }
     }
   ]
 }
 ```
+
+### The `orchid` block
+
+| Field | Description |
+|-------|-------------|
+| `provenance` | Whether citations can be checked on this model — see [Provenance](/guides/provenance) |
+| `provenance_certified` | Whether Orchid has measured this model against the citation contract |
+| `provenance_adherence` | The measured score, or `null` if uncertified |
+| `thinking` / `tools` | Whether the model supports reasoning mode and tool calling |
+| `credential` | `platform` if the request runs on Orchid's credential, `customer` if it runs on yours |
+| `provider` | The upstream family: `openai_compat`, `anthropic`, `openai` |
+| `credential_set` | Whether a usable credential exists, on the deployment or stored by you |
+| `needs_key` | `true` when nobody has supplied a credential yet. The model is still listed, so you can be asked for the key rather than never shown the model |
+| `key_group` / `key_group_label` | Which vendor key unlocks it. One key covers every model of that vendor |
+| `background_model` | The cheapest model of the same vendor your key may use, for background work — titles, summaries — on the same licence |
+
+Models whose credential nobody has supplied are listed with `needs_key: true`. Store one with
+[PUT /v1/vendor-keys](/api-reference/vendor-keys) and it becomes callable.
+
+<Note>
+  The embedding model is deliberately absent from this list. `/v1/models` is what clients read to
+  pick something to *talk to*, and a chat client should not be able to send messages to an
+  embedding model. Use the id `orchid-embed-01` directly — see [Embeddings](/api-reference/embeddings).
+</Note>
+
+## The catalog
+
+What the hosted gateway serves today. Your key may see fewer.
+
+| Model id | Runs on |
+|----------|---------|
+| `orchid-auto` | Routes between everything below — see [Automatic routing](/guides/routing) |
+| `orchid01` | Orchid's finance-native model |
+| `kimi-k3-fireworks` | Fireworks |
+| `claude-sonnet-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`, `claude-opus-5-5` | Anthropic |
+| `gpt-6-sol`, `gpt-6-luna`, `gpt-6-1-sol`, `gpt-6-astra` | OpenAI |
+
+A self-hosted deployment sets its own catalog with `ORCHID_MODELS_FILE`, including entries that
+point at your own Bedrock account, Azure deployment or OpenAI organisation. See
+[Self-hosting](/self-hosting/introduction).

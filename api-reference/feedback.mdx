@@ -1,0 +1,46 @@
+---
+title: Feedback
+description: POST /v1/feedback
+---
+
+## Endpoint
+
+```
+POST https://llm.orchid.ac/v1/feedback
+```
+
+A thumbs up or down on one answer. This is what your firm's own routing scores are learned from,
+alongside the regenerations and model switches the gateway already sees — so sending it makes
+[automatic routing](/guides/routing) better for your traffic specifically.
+
+## Request
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `request_id` | string | required. `orchid.routing.request_id` from the response being rated. Max 64 characters |
+| `rating` | string | required. `up` or `down` |
+
+```bash
+curl https://llm.orchid.ac/v1/feedback \
+  -H "Authorization: Bearer $ORCHID_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"request_id": "ff8c05e9cafe8e10", "rating": "up"}'
+```
+
+## Response
+
+```json
+{ "recorded": true, "request_id": "ff8c05e9cafe8e10", "rating": "up" }
+```
+
+## Errors
+
+| Status | Code | Cause |
+|--------|------|-------|
+| `400` | `invalid_request` | Missing `request_id`, or `rating` is not `up` or `down` |
+| `503` | `feedback_unavailable` | The rating could not be recorded. Retry later |
+
+<Note>
+  There is no comment field, by design. Free text about an answer is content, and content from an
+  on-premise firm does not come to Orchid. Only the rating is kept.
+</Note>

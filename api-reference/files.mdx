@@ -1,0 +1,61 @@
+---
+title: File upload
+description: POST /v1/orchid/files
+---
+
+## Endpoint
+
+```
+POST https://llm.orchid.ac/v1/orchid/files
+```
+
+Upload a PDF and get back an `orchid://` handle to pass to the `parse_pdf` tool. See
+[Tool calling](/guides/tool-calling).
+
+## Request
+
+The PDF is the **raw request body**, not multipart — one file per call, so the client side stays
+a plain POST. Name it with `?filename=` or an `X-Filename` header if you want the name carried
+through to the parser.
+
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Bearer <your-orchid-key>` |
+| `Content-Type` | `application/pdf` |
+| `X-Filename` | Optional. The original filename |
+
+```bash
+curl https://llm.orchid.ac/v1/orchid/files?filename=credit-agreement.pdf \
+  -H "Authorization: Bearer $ORCHID_API_KEY" \
+  -H "Content-Type: application/pdf" \
+  --data-binary @credit-agreement.pdf
+```
+
+## Response
+
+```json
+{
+  "object":   "file",
+  "id":       "orchid://...",
+  "filename": "credit-agreement.pdf",
+  "bytes":    284913
+}
+```
+
+## Limits and errors
+
+The upload limit is **32 MB**. Only PDFs are accepted, and the check reads the file's magic
+bytes — the filename and declared content type are not trusted.
+
+| Status | Code | Cause |
+|--------|------|-------|
+| `413` | `file_too_large` | Over 32 MB |
+| `415` | `unsupported_file_type` | The bytes are not a PDF |
+| `502` | `upload_failed` | The upstream parser rejected the upload |
+| `503` | `reducto_not_configured` | This deployment has no document parser configured |
+
+<Warning>
+  On a self-hosted deployment, this endpoint forwards the document to an external parsing service.
+  Leave `REDUCTO_API_KEY` unset if whole documents must not leave your network — the endpoint then
+  returns `503` rather than uploading anything. See [Production hardening](/self-hosting/production-hardening).
+</Warning>

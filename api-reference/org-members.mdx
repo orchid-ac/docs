@@ -1,0 +1,63 @@
+---
+title: Organisation members
+description: Who is in your organisation, and what each may do
+---
+
+Roles gate the organisation-wide settings: the [PII policy](/api-reference/pii) floor and the
+organisation's [vendor keys](/api-reference/vendor-keys).
+
+## Read
+
+```
+GET /v1/org/members
+```
+
+Any member may read this — who works at a firm is not a secret from that firm. Only roles are
+returned; names belong to whatever directory your deployment uses, and the gateway is not one.
+
+```json
+{
+  "members": [
+    { "user_id": "9bbe48be-...", "role": "owner" },
+    { "user_id": "2ce0cdf7-...", "role": "member" }
+  ],
+  "your_role": "owner",
+  "editable":  true
+}
+```
+
+## Set a role
+
+```
+PUT /v1/org/members/{user_id}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `role` | string or null | `owner`, `admin`, `member`, or `null` to remove them |
+
+```bash
+curl -X PUT https://llm.orchid.ac/v1/org/members/2ce0cdf7-89c4-4f4a-8905-a33545698395 \
+  -H "Authorization: Bearer $ORCHID_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"role": "admin"}'
+```
+
+```json
+{ "user_id": "2ce0cdf7-...", "role": "admin", "previous": "member" }
+```
+
+The request is refused if it would strand the organisation without an owner.
+
+<Note>
+  Removing somebody's role removes their membership, not their account or their work. This is the
+  gateway, and it has no business deleting a person.
+</Note>
+
+## Errors
+
+| Status | Code | Cause |
+|--------|------|-------|
+| `400` | `invalid_request` | `role` is not a known role or `null` |
+| `403` | `role_change_refused` | Your role may not make this change, or it would leave no owner |
+| `503` | `org_unavailable` | The membership store is unreachable |
