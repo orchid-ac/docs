@@ -45,12 +45,7 @@ Up to 20 webhooks a connection.
 
 ### What a key may subscribe to
 
-Without `record:read`, a key may subscribe to:
-
-- Orchid's own state changing: `alert.changed`, `rule.matched`, `budget.crossed`, `insight.action.changed`, `work.task`, `employee.run`, `webhook.failed`;
-- your own `x.*` and `dev.*` kinds, **as sent by its own connection** (Orchid adds `"source_id"` to `match` for you).
-
-Anything else (email, chat, model calls, what the AI read, other connections' events) is your firm's record, and needs `record:read`.
+Without `record:read`, a key hears Orchid's own changes (alerts, rule matches, budgets, insight actions, tasks, AI employee runs) and the events its own connection sent. Anything else, such as email, chat or model calls, needs `record:read`.
 
 ## A delivery
 

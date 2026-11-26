@@ -23,7 +23,6 @@ GET /v1/events?kinds=dev.agent.run,x.deal_desk.approval&since=2026-11-01T00:00:0
 | Parameter | |
 | --- | --- |
 | `kinds` | comma-separated kinds |
-| `families` | comma-separated families: `ai`, `comms`, `systems`, `governance`, `access`, `work`, `dev`, `studio`, `custom` |
 | `person` | a person id: their own events |
 | `thread` | one thread |
 | `source` | one connection (with `record:read`) |
@@ -93,7 +92,7 @@ Every search is a `search.run` event, as a search from the console is.
 GET /v1/export/events?since=2026-10-01T00:00:00Z&until=2026-11-01T00:00:00Z&kinds=dev.agent.run
 ```
 
-Every event in the period, **oldest first**, as JSON lines (`application/x-ndjson`): one event a line, streamed a month at a time. No text: fetch it by id. At most 400 days at once; export longer periods in parts.
+Every event in the period, **oldest first**, as JSON lines (`application/x-ndjson`): one event a line. No text: fetch it by id. At most 400 days at once; export longer periods in parts.
 
 ```python
 import httpx, json
@@ -112,10 +111,3 @@ GET /v1/record/kinds
 ```
 
 Every kind your firm records, built-in and your own, with each one's schema and what it counts as, and `key_kinds`: the built-in kinds a key may send.
-
-## Freshness
-
-- Events your keys send are readable as soon as the batch is answered.
-- Orchid's own records of AI use are written as each request ends, not in the same moment: allow a few seconds.
-- Captured email, chat and system records are as fresh as the last capture run, every few minutes.
-- Search finds a content once it has been indexed in the background, shortly after it is recorded.

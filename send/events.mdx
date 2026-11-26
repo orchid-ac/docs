@@ -39,7 +39,7 @@ Besides your own `x.*` kinds, a key may send:
 | --- | --- |
 | `dev.agent.run`, `dev.agent.metric`, `dev.agent.feedback` | [your agents' runs and figures](/send/agents) |
 | `dev.tool_call` | [your agent calling one of your systems](/send/audit-record) |
-| `system.record` | [a record that changed in one of your systems](/send/audit-record#a-system-pushes-its-changes) |
+| `system.record` | [a record that changed in one of your systems](/send/audit-record#a-systems-changes) |
 
 Every other built-in kind is written only by Orchid itself.
 
@@ -74,12 +74,12 @@ An event is identified by its **kind, `ref` and `occurred_at`**. Sending the sam
 - after a timeout or a `5xx`, retry the same batch;
 - events are never changed: to correct one, send a new event that says so.
 
-Your own kinds and the `dev.*` kinds are kept apart by connection: two of your connections may each send a `run-1`. Orchid stores their `ref` as `<connection id>:<your ref>`, and that is what you read back. `system.record` is not kept apart: the same record version sent by two connections is one event.
+The same `ref` sent by two of your connections is two events. When you read events back, their `ref` starts with the connection's id: `<connection id>:<your ref>`.
 
 ## Limits
 
 - 1,000 events and 10 MB a request.
-- 60,000 events a minute per connection (`ORCHID_EVENTS_PER_MINUTE` on your own install).
+- 60,000 events a minute per connection.
 - Requests: your deployment's rate for any key, 400 a minute unless it sets otherwise.
 - Keep `attrs` small: numbers, labels and ids. Put words in `text`.
 

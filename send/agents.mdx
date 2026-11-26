@@ -73,7 +73,7 @@ If your agent calls models through Orchid's gateway, send two headers on each ca
 | `X-Orchid-Agent` | the agent's name, as in `attrs.agent` |
 | `X-Orchid-Run` | the run id, as in `thread` |
 
-Orchid then writes the agent and run on its own ledger entry and on the call's `ai.request` event (with the run as its thread). So the run's cost is **counted** from what Orchid priced, and what routing saved is counted too. Your agent's own `cost_usd` stays apart, as **reported**.
+Orchid then counts that run's model cost, and what routing saved. Your agent's own `cost_usd` stays apart, as **reported**.
 
 <CodeGroup>
 

@@ -45,14 +45,14 @@ Fields not in the schema are allowed and kept. A field in the schema with the wr
 
 | Value | Then |
 | --- | --- |
-| `activity` | it appears in people's and teams' activity and in the organisation graph |
-| `work` | the work classifier reads it, so it counts towards tasks and time saved |
+| `activity` | it shows in people's and teams' activity |
+| `work` | it counts towards tasks and time saved |
 | `comms` | it is searchable as communications, and archived |
 | `governance` | your firm's rules run on its `text`, as on an email: a match opens or joins an alert |
 
 ## Changing and removing
 
-Changing a type's title, fields or `counts_as` applies to events sent from then on. Events already recorded are not checked again.
+Changing a type's title, fields or `counts_as` applies to events sent from then on.
 
 A type that any event uses cannot be removed, because events are never deleted and need their type to be read. Stop sending it instead.
 

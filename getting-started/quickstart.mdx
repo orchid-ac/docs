@@ -28,7 +28,7 @@ If you only want to report your agents' runs, skip this step: the built-in [agen
 
 ## 2. Add a connection and make a key
 
-Go to **Admin › Developers › Send your own events › Add**. Name it after what will send the events, such as "Pricing agents". You get a key (`osk_...`). Copy it now: Orchid keeps only a fingerprint, so it cannot be shown again.
+Go to **Admin › Developers › Send your own events › Add**. Name it after what will send the events, such as "Pricing agents". You get a key (`osk_...`). Copy it now: it cannot be shown again.
 
 A new key can send events and read back its own. To read cost or alerts, or to make webhooks, make a key with more [scopes](/getting-started/keys-and-scopes).
 
@@ -69,7 +69,7 @@ The events also appear in the console: in the audit log, in people's activity, a
 
 ## 5. See what your agent cost
 
-When your agent calls models through Orchid's gateway, add two headers, and Orchid counts what each run cost from its own ledger:
+When your agent calls models through Orchid's gateway, add two headers, and Orchid counts what each run cost:
 
 ```python
 from openai import OpenAI

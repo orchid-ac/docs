@@ -34,7 +34,7 @@ Every key can send events and read back its own. Everything else is given by an 
 | `webhooks:manage` | [Make and remove webhooks](/act/webhooks) | no |
 
 <Warning>
-  `record:read` reads everyone's recorded email, chats and AI conversations. Give it only to a system your compliance team owns. Every read with it is on the record.
+  `record:read` reads everyone's recorded email, chats and AI conversations. Give it only to a system your compliance team owns.
 </Warning>
 
 A request without the scope it needs gets `403` with code `missing_scope`, naming the scope.
@@ -62,24 +62,12 @@ curl -X POST https://app.orchid.ac/v1/org/connections/$CONNECTION_ID/keys \
 | `expires_in_days` | optional | 1 to 730. The key stops working by itself then. Omit for a key that does not expire. |
 | `run_as` | with `runs:write` only | the Orchid user id of the person AI employee runs started with this key run as |
 
-`GET /v1/org/connections/scopes` lists the scopes with a description of each.
-
 ## Rotation and revocation
 
 1. Make a new key with the same scopes.
 2. Deploy it.
 3. Revoke the old one: **Revoke** in the console, or `DELETE /v1/org/connections/{id}/keys/{key_id}`.
 
-A revoked or expired key stops working within 30 seconds on every server. Keys are never deleted, so who made each one stays on the record.
+A revoked or expired key stops working within a minute.
 
-## How keys are kept
-
-Orchid keeps only a sha256 fingerprint of each key, beside your firm's other records. A key carries which firm it belongs to (that part is not secret; the random part is), so a firm VM or on-premises install checks its keys in its own database without asking Orchid's cloud.
-
-## What is recorded about a key's use
-
-- Every event a key writes carries `attrs.via = "key:<key id>"`.
-- Every read is itself an event (`api.read`, or `search.run` for a search), naming the key's connection, the route and how many rows came back.
-- Making, revoking and removing keys and webhooks are `admin.changed` events.
-
-Your compliance team can see all of it in the audit log.
+Every read and change made with a key is in your audit log.
