@@ -5,6 +5,8 @@ description: "Report your own agents' runs, metrics and feedback, and count what
 
 Orchid has built-in kinds for your firm's own agents, so every agent reads the same way in the console and in [`/v1/agents`](/read/metrics#agents), with no type to define. An agent exists as soon as an event names it in `attrs.agent`.
 
+Each run you send is counted as a task, the same way as the work of Orchid's own AI employees. Your agent then appears in Actions beside them, marked **Built by your team**, with the same results: tasks, people, accepted first time, corrections, hours saved, cost per task and how its answers failed, compared with the same work done without it. Its tasks also count in your firm's impact figures and in Insights. See [How runs are measured](#how-runs-are-measured).
+
 ## The kinds
 
 ### `dev.agent.run`
@@ -19,7 +21,14 @@ One run of an agent. Send it when the run ends.
 | `model`, `input_tokens`, `output_tokens` | optional | for calls made outside Orchid |
 | `cost_usd` | optional | what the run cost outside Orchid (**reported**) |
 | `minutes_saved` | optional | the minutes a person would have spent (**reported**) |
-| `work_type`, `version` | optional | labels |
+| `work_type` | optional | the kind of work, by the name your firm uses in Orchid: `Comparable companies` |
+| `version` | optional | the agent's version, as you name it |
+| `variant` | optional | `a` or `b`, to compare a change on some of its runs |
+
+Also send:
+
+- `actor`: the person the run was for. Without it, the run counts to the agent's owner.
+- `title`: what the task was, in a line (`Price Acme against listed comparables`). Without it or `work_type`, Orchid cannot tell what kind of work the run did.
 
 Counts as `activity` and `work`.
 
@@ -39,7 +48,11 @@ What a person said about the agent's work.
 | `attrs` | | |
 | --- | --- | --- |
 | `agent`, `label` | required | `label`: `accepted`, `corrected` or `rejected` |
-| `score`, `run` | optional | |
+| `note` | optional | what was wrong, in words, with `corrected` or `rejected` |
+| `score` | optional | |
+| `run` | optional | the run it is about, if you do not send the run id as `thread` |
+
+Send it when the person takes, corrects or rejects the result, even hours later. Without feedback, Orchid cannot tell whether a run's result was accepted.
 
 Counts as `work`.
 
@@ -59,8 +72,12 @@ Send the run id as `thread` on every event of the run: its metrics, its tool cal
   {"kind": "dev.agent.metric", "ref": "run-8812/m1", "occurred_at": "2026-11-26T10:00:40Z", "thread": "run-8812",
    "attrs": {"agent": "pricer", "name": "comparables_used", "value": 3}},
   {"kind": "dev.agent.run", "ref": "run-8812", "occurred_at": "2026-11-26T10:00:41Z", "thread": "run-8812",
-   "actor": "j.smith@yourfirm.com",
-   "attrs": {"agent": "pricer", "status": "ok", "duration_ms": 41200, "minutes_saved": 40}}
+   "actor": "j.smith@yourfirm.com", "title": "Price Acme against listed comparables",
+   "attrs": {"agent": "pricer", "status": "ok", "duration_ms": 41200, "work_type": "Comparable companies",
+             "version": "4", "minutes_saved": 40}},
+  {"kind": "dev.agent.feedback", "ref": "run-8812/feedback", "occurred_at": "2026-11-26T11:15:00Z",
+   "thread": "run-8812", "actor": "j.smith@yourfirm.com",
+   "attrs": {"agent": "pricer", "label": "corrected", "note": "Two of the comparables used last year's EBITDA."}}
 ]}
 ```
 
@@ -97,6 +114,24 @@ def llm_for(run_id: str) -> Anthropic:
 
 The model calls use a person's Orchid API key, not a connection key: the call is that person's, under their limits and budget. A header that is not well formed (an agent name with spaces, a run id over 200 characters) is left out rather than refusing the call.
 
+## How runs are measured
+
+| Figure | From |
+| --- | --- |
+| Tasks, people | each run, for its `actor` (else the agent's owner) |
+| Accepted first time | feedback: `accepted` with no `corrected` before it |
+| Corrections | how many `corrected` feedback events the run got |
+| Given up | `rejected`, or a run whose `status` is `failed` |
+| Hours saved | Orchid's estimate of the minutes the work takes by hand (your firm's benchmark for that kind of work, where an admin set one), less the run's time. Your `minutes_saved` is shown beside it, never added in. |
+| Cost per task | the run's model calls through Orchid (`X-Orchid-Run`) |
+| How answers failed | the `note` on corrected and rejected feedback |
+| Without it | the same kind of work done in your firm with no agent |
+| A against B | runs by `variant` |
+
+A run with no feedback counts in tasks, hours and cost, but not in acceptance: it is not assumed to have been accepted.
+
+In Actions, an admin can set an agent's owner, the team it works for and its usual kind of work, and mark it as a pilot, live or retired. A retired agent's new runs are kept in the audit record but no longer counted as work. What the agent does is changed in your own system.
+
 ## Describing an agent
 
 What an agent is called, who owns it and which team it serves:
@@ -107,8 +142,8 @@ curl -X PUT https://app.orchid.ac/v1/agents/pricer \
   -d '{"title": "Deal pricer", "owner": "j.smith@yourfirm.com", "team": "Credit", "description": "Prices deals against comparables."}'
 ```
 
-Scope: `events:write`. It is kept on the connection the key belongs to.
+Scope: `events:write`. `owner` is the email of one of your firm's people in Orchid: runs sent with no person count to them. `team` is the name of one of your firm's teams. Either is refused if Orchid does not know it.
 
 ## Reading the figures
 
-See [Agents](/read/metrics#agents): runs, success rate, p50 and p95 duration, counted cost and savings, reported cost and minutes, tool calls by system, feedback, and your metrics.
+See [Agents](/read/metrics#agents): runs, success rate, p50 and p95 duration, counted cost and savings, reported cost and minutes, tool calls by system, feedback, your metrics, and its `results`, measured as above.
