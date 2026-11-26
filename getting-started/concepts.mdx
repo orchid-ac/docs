@@ -1,0 +1,68 @@
+---
+title: "Concepts"
+description: "Events, kinds, people, threads, contents, and how Orchid labels its numbers."
+---
+
+## Events
+
+Everything that happens is one **event**: an AI message, a model call, an email captured, a rule that matched, a search someone ran, your agent's run. Each event has:
+
+| Field | |
+| --- | --- |
+| `id` | Orchid's id, a time-ordered UUID (v7) |
+| `kind` | what happened, such as `mail.message` or `x.deal_desk.approval` |
+| `occurred_at` | when it happened, at the source |
+| `recorded_at` | when Orchid recorded it |
+| `ref` | the source's own id for it. The same thing sent twice is one event. |
+| `source_id` | the connection it came from |
+| `actor_id` | the person who did it |
+| `people` | everyone else involved, as people |
+| `external` | outside addresses or domains involved, as text |
+| `thread_id` | what it belongs to: a conversation, an email thread, a deal, a run |
+| `parent_id` | the event it answers or belongs to |
+| `title` | a short line |
+| `content_id` | what was said or read (see [Contents](#contents)) |
+| `attrs` | small, kind-specific fields: model, tokens, cost, status, labels |
+
+**Events are append-only.** Nobody can change or delete one, Orchid included. To correct an event, send a new one that says so. This is also what a regulator's audit-trail rules ask for.
+
+## Kinds
+
+A kind is namespaced by a dot. Orchid ships the **built-in** kinds (see [Event kinds](/reference/event-kinds)), and your firm adds its **own**, always starting with `x.`. Every write is checked against its kind's schema, and a kind nobody defined is refused, so the record stays clean.
+
+Each kind says what it **counts as**:
+
+- `activity`: in people's and teams' activity and the organisation graph;
+- `work`: read by the work classifier, so it counts towards tasks and time saved;
+- `comms`: searchable as communications, and archived;
+- `governance`: your firm's rules run on its text, and a match opens an alert.
+
+## People
+
+Events name **people**, not accounts. A person may have an Orchid login (a member), be in your directory without one (an employee), or be someone outside the firm. When you send an event, you name people by email, by an employee id Orchid has learnt, or by an Orchid person id. See [People](/send/events#people).
+
+## Threads
+
+A thread groups events that belong together: a conversation, an email thread, a deal, or one run of your agent. Send the same `thread` on related events, and `GET /v1/record/threads/{id}` returns them in order, with their text.
+
+## Contents
+
+What was said or read is a **content**, kept once per firm and identified by the sha256 of its text. An attachment sent to fifty people is stored, parsed and searched once. When you send an event with `text`, Orchid makes the content for you. For a long document cited by many events, [upload it once](/send/contents) and cite its `content_id`.
+
+Contents are what search, Ask and your rules read. Webhooks never carry them.
+
+## Counted, estimated and reported
+
+Every figure Orchid gives you says where it came from:
+
+| Label | Means | Examples |
+| --- | --- | --- |
+| **counted** | facts from rows Orchid wrote itself | spend, routing savings, model calls, runs, alerts |
+| **estimated** | from Orchid's own model | the minutes a task would have taken by hand |
+| **reported** | what your firm sent | your agent's own `cost_usd` and `minutes_saved` |
+
+Reported figures are always shown apart and never added into a counted total.
+
+## Where your data lives
+
+See [Deployments](/getting-started/deployments). In short: your record is kept where the rest of your firm's records are, and the API is the same everywhere.

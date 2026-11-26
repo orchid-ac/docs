@@ -1,0 +1,85 @@
+---
+title: "Keys and scopes"
+description: "Connection keys, what each scope allows, expiry, rotation and revocation."
+---
+
+Every call to the developer API uses a **connection key**: `Authorization: Bearer osk_...`. A key belongs to one of your firm's own connections (the agent or system that uses it), and says what it may do.
+
+## Connections
+
+A connection is what sends or reads: "Pricing agents", "Case system", "Data warehouse". An admin adds one under **Admin › Developers**. Each connection has:
+
+- up to 10 keys at a time, so you can rotate;
+- a **Receiving** switch. Off, its keys still authenticate, but every batch it sends gets a `403` and nothing is recorded;
+- its events, volume and last event, shown in the console;
+- the webhooks its keys made.
+
+Removing a connection revokes all its keys. What it already sent is kept: events are never deleted.
+
+## Scopes
+
+Every key can send events and read back its own. Everything else is given by an admin when the key is made, and cannot be added later. To change what a key may do, make a new key and revoke the old one.
+
+| Scope | Allows | Given by default |
+| --- | --- | --- |
+| `events:write` | [Send events](/send/events), [contents](/send/contents), [describe agents](/send/agents#describing-an-agent) | yes |
+| `events:read:own` | [Read back](/read/record) the events this connection sent | yes |
+| `record:read` | Read the firm's whole record: every event, thread and passage, of every kind | no |
+| `metrics:read` | [Daily counts](/read/metrics) and [your agents' figures](/read/metrics#agents), with no content | no |
+| `cost:read` | [Spend, savings, KPIs and impact](/read/cost) | no |
+| `governance:read` | The [alert queue](/read/alerts) (titles, not content) | no |
+| `alerts:write` | [Assign, comment on and close alerts](/act/alerts) | no |
+| `actions:write` | [Create and move insight actions](/act/insight-actions) | no |
+| `runs:write` | [Start and answer AI employee runs](/act/agent-runs), as one named person | no |
+| `webhooks:manage` | [Make and remove webhooks](/act/webhooks) | no |
+
+<Warning>
+  `record:read` reads everyone's recorded email, chats and AI conversations. Give it only to a system your compliance team owns. Every read with it is on the record.
+</Warning>
+
+A request without the scope it needs gets `403` with code `missing_scope`, naming the scope.
+
+## Making a key
+
+In the console, **Admin › Developers**, then **New key** under a connection. Or with the admin API (a console session or an admin's Orchid API key):
+
+```bash
+curl -X POST https://app.orchid.ac/v1/org/connections/$CONNECTION_ID/keys \
+  -H "Authorization: Bearer $ORCHID_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"scopes": ["cost:read", "metrics:read", "webhooks:manage"], "expires_in_days": 365}'
+```
+
+```json
+{"key": {"id": "6f1c…", "prefix": "osk_…3f9a1c2b", "key": "osk_u9b2f…",
+         "scopes": ["events:write", "events:read:own", "metrics:read", "cost:read", "webhooks:manage"],
+         "expires_at": "2027-11-26T10:00:00+00:00", "run_as": null}}
+```
+
+| Field | | |
+| --- | --- | --- |
+| `scopes` | optional | the scopes beyond the defaults |
+| `expires_in_days` | optional | 1 to 730. The key stops working by itself then. Omit for a key that does not expire. |
+| `run_as` | with `runs:write` only | the Orchid user id of the person AI employee runs started with this key run as |
+
+`GET /v1/org/connections/scopes` lists the scopes with a description of each.
+
+## Rotation and revocation
+
+1. Make a new key with the same scopes.
+2. Deploy it.
+3. Revoke the old one: **Revoke** in the console, or `DELETE /v1/org/connections/{id}/keys/{key_id}`.
+
+A revoked or expired key stops working within 30 seconds on every server. Keys are never deleted, so who made each one stays on the record.
+
+## How keys are kept
+
+Orchid keeps only a sha256 fingerprint of each key, beside your firm's other records. A key carries which firm it belongs to (that part is not secret; the random part is), so a firm VM or on-premises install checks its keys in its own database without asking Orchid's cloud.
+
+## What is recorded about a key's use
+
+- Every event a key writes carries `attrs.via = "key:<key id>"`.
+- Every read is itself an event (`api.read`, or `search.run` for a search), naming the key's connection, the route and how many rows came back.
+- Making, revoking and removing keys and webhooks are `admin.changed` events.
+
+Your compliance team can see all of it in the audit log.

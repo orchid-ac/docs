@@ -1,0 +1,121 @@
+---
+title: "The record"
+description: "List events, fetch one with its text, read a thread, search, and export."
+---
+
+| | Scope |
+| --- | --- |
+| `GET /v1/events` | `events:read:own` (your connection's events) or `record:read` (everything) |
+| `GET /v1/events/{id}` | the same |
+| `GET /v1/record/threads/{id}` | the same |
+| `GET /v1/export/events` | the same |
+| `GET /v1/record/search` | `record:read` |
+| `GET /v1/record/kinds` | any key |
+
+A key with only `events:read:own` sees the events its own connection sent, and nothing else. Every read is itself an event (`api.read`), so the audit log shows who read what with which key.
+
+## List events
+
+```
+GET /v1/events?kinds=dev.agent.run,x.deal_desk.approval&since=2026-11-01T00:00:00Z&limit=100
+```
+
+| Parameter | |
+| --- | --- |
+| `kinds` | comma-separated kinds |
+| `families` | comma-separated families: `ai`, `comms`, `systems`, `governance`, `access`, `work`, `dev`, `studio`, `custom` |
+| `person` | a person id: their own events |
+| `thread` | one thread |
+| `source` | one connection (with `record:read`) |
+| `since`, `until` | ISO 8601 times |
+| `before` | the `next` of the previous page |
+| `limit` | 1 to 500, default 100 |
+
+Newest first:
+
+```json
+{
+  "events": [
+    {"id": "019378a2-6f40-7c1e-9a3b-5d2e8f1a4b6c", "kind": "dev.agent.run",
+     "occurred_at": "2026-11-26T10:00:41+00:00", "recorded_at": "2026-11-26T10:00:42+00:00",
+     "source_id": "c2a1…", "ref": "c2a1…:run-8812", "actor_id": "5e0b…", "person": "Jo Smith",
+     "thread_id": "run-8812", "title": null, "people": [], "external": [], "content_id": null,
+     "attrs": {"agent": "pricer", "status": "ok", "duration_ms": 41200, "minutes_saved": 40},
+     "snippet": null}
+  ],
+  "more": true,
+  "next": "2026-11-26T10:00:41+00:00"
+}
+```
+
+`person` is the actor's name and `snippet` the start of its text. For the next page, pass `next` as `before`. Your own kinds' and agent kinds' `ref` come back as `<connection id>:<your ref>`.
+
+## One event, with its text
+
+```
+GET /v1/events/019378a2-6f40-7c1e-9a3b-5d2e8f1a4b6c
+```
+
+The event as above, plus `text`: the whole content. This is what a [webhook](/act/webhooks) receiver calls to read what an event said, since deliveries never carry it.
+
+## A thread
+
+```
+GET /v1/record/threads/run-8812
+```
+
+```json
+{"thread": {"id": "run-8812", "kind": "dev", "title": null, "started_at": "...", "last_at": "...", "events": 4},
+ "events": [ {"kind": "ai.request", "...": "...", "text": null}, {"kind": "dev.tool_call", "text": "..."} ]}
+```
+
+Every event in the thread, oldest first, each with its whole text. With `events:read:own` only, the thread holds only your connection's events.
+
+## Search
+
+```
+GET /v1/record/search?q=guaranteed%20returns&limit=50
+```
+
+Passages by meaning and by words, each with the events that said or read it:
+
+```json
+{"by_meaning": true,
+ "results": [{"content_id": "…", "passage": "…we can guarantee a 12% return…", "score": 0.83, "by_words": true,
+              "events": [{"kind": "mail.message", "occurred_at": "…", "person": "Jo Smith", "...": "..."}]}]}
+```
+
+Every search is a `search.run` event, as a search from the console is.
+
+## Export
+
+```
+GET /v1/export/events?since=2026-10-01T00:00:00Z&until=2026-11-01T00:00:00Z&kinds=dev.agent.run
+```
+
+Every event in the period, **oldest first**, as JSON lines (`application/x-ndjson`): one event a line, streamed a month at a time. No text: fetch it by id. At most 400 days at once; export longer periods in parts.
+
+```python
+import httpx, json
+
+with httpx.stream("GET", "https://app.orchid.ac/v1/export/events",
+                  params={"since": "2026-10-01T00:00:00Z"},
+                  headers={"Authorization": f"Bearer {KEY}"}, timeout=None) as r:
+    for line in r.iter_lines():
+        event = json.loads(line)
+```
+
+## Kinds
+
+```
+GET /v1/record/kinds
+```
+
+Every kind your firm records, built-in and your own, with each one's schema and what it counts as, and `key_kinds`: the built-in kinds a key may send.
+
+## Freshness
+
+- Events your keys send are readable as soon as the batch is answered.
+- Orchid's own records of AI use are written as each request ends, not in the same moment: allow a few seconds.
+- Captured email, chat and system records are as fresh as the last capture run, every few minutes.
+- Search finds a content once it has been indexed in the background, shortly after it is recorded.

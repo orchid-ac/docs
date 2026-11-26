@@ -1,0 +1,109 @@
+---
+title: "Cost and savings"
+description: "What AI cost, what routing saved, the time it saved and the KPI report, with the console's own numbers."
+---
+
+Scope: `cost:read`. Each route returns exactly what the matching console page shows for the whole firm, from the same code, so the two never disagree.
+
+| | Console page |
+| --- | --- |
+| `GET /v1/cost` | Settings › Usage & billing |
+| `GET /v1/impact` | Impact |
+| `GET /v1/kpis` | the KPI report (full edition) |
+
+## Cost
+
+```
+GET /v1/cost?days=30&group=agent
+```
+
+| Parameter | |
+| --- | --- |
+| `days` | 1 to 365, default 30 (from the start of the first day) |
+| `group` | `model` (default), `task`, `person`, `agent` or `none` |
+
+```json
+{
+  "days": 30,
+  "since": "2026-10-27T00:00:00+00:00",
+  "currency": "USD",
+  "spend_usd": {"value": 4210.55, "label": "counted"},
+  "routing_saving_usd": {"value": 2870.10, "label": "counted"},
+  "without_routing_usd": {"value": 7080.65, "label": "counted"},
+  "saving_pct": 40.5,
+  "requests": 183220,
+  "routed_requests": 161904,
+  "input_tokens": 412003112,
+  "output_tokens": 38120455,
+  "group": "agent",
+  "by": [{"agent": "pricer", "requests": 18210, "spent": 812.40, "saved": 530.02, "without_routing": 1342.42}],
+  "daily": [{"date": "2026-11-25", "requests": 6120, "spent": 141.20, "saved": 96.30, "without_routing": 237.50,
+             "cumulative_saved": 2771.80}]
+}
+```
+
+- **Spend** is what model calls cost at the price of the model that served each, from Orchid's billing ledger.
+- **Routing saving** is, for each call `orchid-auto` routed, what your firm's baseline model would have cost minus what it did cost.
+- **Without routing** is spend plus saving: what the same work would have cost on the baseline model.
+
+The numbers above are an illustration.
+
+### By agent
+
+`group=agent` splits spend and saving by the agent each model call named with [`X-Orchid-Agent`](/send/agents#counting-what-model-calls-cost). Calls with no agent are not in `by`, so `by` adds up to the part of the headline your agents spent.
+
+<CodeGroup>
+
+```python Python
+import httpx
+
+r = httpx.get("https://app.orchid.ac/v1/cost", params={"days": 30, "group": "agent"},
+              headers={"Authorization": f"Bearer {KEY}"})
+cost = r.json()
+print(f"Spent ${cost['spend_usd']['value']:,.2f}, saved ${cost['routing_saving_usd']['value']:,.2f} "
+      f"({cost['saving_pct']}%)")
+for a in cost["by"]:
+    print(f"  {a['agent']}: ${a['spent']:,.2f} spent, ${a['saved']:,.2f} saved")
+```
+
+```ts TypeScript
+const r = await fetch("https://app.orchid.ac/v1/cost?days=30&group=agent", {
+  headers: { Authorization: `Bearer ${process.env.ORCHID_KEY}` },
+});
+const cost = await r.json();
+console.log(`Spent $${cost.spend_usd.value}, saved $${cost.routing_saving_usd.value} (${cost.saving_pct}%)`);
+```
+
+</CodeGroup>
+
+## Impact
+
+```
+GET /v1/impact?days=30
+```
+
+The Impact page's numbers for the whole firm: tasks done with AI, the hours they would have taken by hand, what that time is worth at your firm's hourly rates, and what AI cost per task.
+
+| Key | |
+| --- | --- |
+| `totals` | tasks, hours saved, value, cost and cost per task, accepted first time, corrections |
+| `work_types` | the same per kind of work |
+| `weekly` | the same week by week |
+| `by_source` | people's own chats and AI employees, each with its own cost and return |
+| `hourly_usd` | the hourly rate used |
+
+Hours saved are **estimated**: Orchid's model of how long each task would have taken a person. Tasks, cost and corrections are **counted**.
+
+## KPIs
+
+```
+GET /v1/kpis?days=30
+```
+
+Full edition only. Three pillars:
+
+| Key | |
+| --- | --- |
+| `cost` | spend, saving against your baseline model, and the percentage |
+| `quality` | for calls `orchid-auto` routed, the quality kept against the best model the call could have used, by the router's own scores |
+| `security` | what PII protection found and masked |

@@ -1,119 +1,96 @@
 ---
-title: Quickstart
-description: Make your first orchid01 API call in minutes
+title: "Quickstart"
+description: "Send an event from your own agent, read it back, and see what it cost, in ten minutes."
 ---
 
-## Setup
+You need to be an admin of your firm in Orchid for the first two steps. After that, everything runs with the key.
 
-Get your API key from the [Orchid dashboard](https://app.orchid.ac) under **Settings → API Keys**.
+## 1. Define an event type
 
-<Info>
-  The API is **OpenAI-compatible** (`/v1/chat/completions`, `/v1/responses`, `/v1/models`, …) and **Anthropic-compatible** (`POST /v1/messages`). Use your Orchid key. **OpenAI-style** clients use `https://llm.orchid.ac/v1`. **Anthropic** clients and [Claude Code](/integrations/claude-code) use the **host only** — `https://llm.orchid.ac` — with **no** `/v1` on the base URL (the SDK appends `/v1/messages`). See [Authentication](/getting-started/authentication) for headers and troubleshooting.
-</Info>
+Your own kinds of event are named `x.<something>`, in lower case. Go to **Admin › Developers › Event types › New type**, or call the admin API with your console session:
 
-## Your first call
-
-<CodeGroup>
-
-```python Python
-from openai import OpenAI
-
-client = OpenAI(
-    base_url="https://llm.orchid.ac/v1",
-    api_key="orchid-your-key-here",
-)
-
-r = client.chat.completions.create(
-    model="orchid01",
-    messages=[{"role": "user", "content": "Summarise this 10-K filing..."}],
-)
-print(r.choices[0].message.content)
-```
-
-```typescript TypeScript
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  baseURL: "https://llm.orchid.ac/v1",
-  apiKey: process.env.ORCHID_API_KEY!,
-});
-
-const r = await client.chat.completions.create({
-  model: "orchid01",
-  messages: [{ role: "user", content: "Summarise this 10-K filing..." }],
-});
-console.log(r.choices[0]?.message?.content);
-```
-
-```bash curl
-curl -s https://llm.orchid.ac/v1/chat/completions \
-  -H "Authorization: Bearer orchid-your-key-here" \
+```bash
+curl -X PUT https://app.orchid.ac/v1/org/event-types/x.deal_desk.approval \
+  -H "Authorization: Bearer $ORCHID_ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "orchid01",
-    "messages": [{"role": "user", "content": "Summarise this 10-K filing..."}]
-  }'
+        "title": "Deal desk approval",
+        "counts_as": ["activity", "governance"],
+        "schema": {"type": "object",
+                   "properties": {"amount": {"type": "number"}, "desk": {"type": "string"}},
+                   "required": ["amount"]}
+      }'
 ```
 
-</CodeGroup>
+`counts_as` decides what Orchid does with the events without any further code. `governance` means your firm's rules run on their text. See [Event types](/send/event-types).
 
-## Anthropic Messages (Claude Code and Python SDK)
+If you only want to report your agents' runs, skip this step: the built-in [agent kinds](/send/agents) need no definition.
 
-For **`POST /v1/messages`**, including **Claude Code** and the official Anthropic Python client, the base URL must be **`https://llm.orchid.ac` without** `/v1` — the SDK appends `/v1/messages`. Setup, environment variables, and code samples: [Claude Code](/integrations/claude-code). Route reference: [Messages API](/api-reference/messages).
+## 2. Add a connection and make a key
 
-User-defined tool-use and images on **`/v1/messages`** are not supported yet — use **chat completions** or **[responses](/api-reference/responses)** for tools ([Tool calling](/guides/tool-calling)). The built-in finance tool suite still runs automatically on every endpoint, including Messages.
+Go to **Admin › Developers › Send your own events › Add**. Name it after what will send the events, such as "Pricing agents". You get a key (`osk_...`). Copy it now: Orchid keeps only a fingerprint, so it cannot be shown again.
 
-## Streaming
+A new key can send events and read back its own. To read cost or alerts, or to make webhooks, make a key with more [scopes](/getting-started/keys-and-scopes).
 
-<CodeGroup>
-
-```python Python
-stream = client.chat.completions.create(
-    model="orchid01",
-    messages=[{"role": "user", "content": "Analyse this credit agreement..."}],
-    stream=True,
-)
-for chunk in stream:
-    piece = chunk.choices[0].delta.content or ""
-    if piece:
-        print(piece, end="", flush=True)
+```bash
+export ORCHID_KEY=osk_...
 ```
 
-```typescript TypeScript
-const stream = await client.chat.completions.create({
-  model: "orchid01",
-  messages: [{ role: "user", content: "Analyse this credit agreement..." }],
-  stream: true,
-});
-for await (const chunk of stream) {
-  process.stdout.write(chunk.choices[0]?.delta?.content || "");
-}
+## 3. Send events
+
+```bash
+curl https://app.orchid.ac/v1/events \
+  -H "Authorization: Bearer $ORCHID_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"events": [
+        {"kind": "dev.agent.run", "ref": "run-8812", "occurred_at": "2026-11-26T10:00:00Z",
+         "actor": "j.smith@yourfirm.com", "thread": "run-8812",
+         "attrs": {"agent": "pricer", "status": "ok", "duration_ms": 41200, "minutes_saved": 40}},
+        {"kind": "x.deal_desk.approval", "ref": "appr-17", "occurred_at": "2026-11-26T10:01:00Z",
+         "actor": "j.smith@yourfirm.com", "thread": "deal-442",
+         "text": "Approved at 9.5x EBITDA against three comparables.",
+         "attrs": {"amount": 12500000, "desk": "credit"}}
+      ]}'
 ```
 
-</CodeGroup>
+```json
+{"recorded": 2, "duplicates": 0}
+```
 
-## Next steps
+Send the same batch again and you get `{"recorded": 0, "duplicates": 2}`: an event is identified by its kind, `ref` and time, so a retry is never counted twice.
+
+## 4. Read it back
+
+```bash
+curl "https://app.orchid.ac/v1/events?kinds=dev.agent.run" -H "Authorization: Bearer $ORCHID_KEY"
+```
+
+The events also appear in the console: in the audit log, in people's activity, and under your rules.
+
+## 5. See what your agent cost
+
+When your agent calls models through Orchid's gateway, add two headers, and Orchid counts what each run cost from its own ledger:
+
+```python
+from openai import OpenAI
+
+llm = OpenAI(base_url="https://app.orchid.ac/v1", api_key=ORCHID_API_KEY,
+             default_headers={"X-Orchid-Agent": "pricer", "X-Orchid-Run": "run-8812"})
+```
+
+Then, with a key that has `metrics:read`:
+
+```bash
+curl https://app.orchid.ac/v1/agents/pricer -H "Authorization: Bearer $ORCHID_KEY"
+```
+
+See [Agents](/send/agents) and [Cost and savings](/read/cost).
+
+## Next
 
 <CardGroup cols={2}>
-  <Card title="Authentication" icon="key" href="/getting-started/authentication">
-    Base URL, Bearer, x-api-key, and anthropic-version
-  </Card>
-  <Card title="Models" icon="cpu" href="/getting-started/models">
-    orchid01 standard and thinking modes
-  </Card>
-  <Card title="Claude Code" icon="plug" href="/integrations/claude-code">
-    Use orchid01 in Claude Code via `/v1/messages`
-  </Card>
-  <Card title="Messages API" icon="code" href="/api-reference/messages">
-    POST /v1/messages reference
-  </Card>
-  <Card title="Responses API" icon="route" href="/api-reference/responses">
-    POST /v1/responses — server-side conversation history
-  </Card>
-  <Card title="Thinking Mode" icon="brain" href="/guides/thinking-mode">
-    Deep reasoning for complex financial analysis
-  </Card>
-  <Card title="Webhooks" icon="webhook" href="/guides/webhooks">
-    Audit logging to your own infrastructure
-  </Card>
+  <Card title="Keys and scopes" icon="key" href="/getting-started/keys-and-scopes">What each key may do, expiry and rotation</Card>
+  <Card title="Sending events" icon="arrow-up-from-bracket" href="/send/events">Every field, people, batches and errors</Card>
+  <Card title="Webhooks" icon="webhook" href="/act/webhooks">Hear about events as they happen</Card>
+  <Card title="Concepts" icon="book" href="/getting-started/concepts">Events, threads, contents and labelled numbers</Card>
 </CardGroup>

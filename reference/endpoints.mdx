@@ -1,0 +1,66 @@
+---
+title: "Endpoints"
+description: "Every developer API route, its scope, and where it is documented."
+---
+
+Base URL: `https://app.orchid.ac/v1` on Orchid's cloud, or your install's own address. Every route takes `Authorization: Bearer osk_...`.
+
+## Send
+
+| Method | Path | Scope | |
+| --- | --- | --- | --- |
+| `POST` | `/v1/events` | `events:write` | [Sending events](/send/events) |
+| `POST` | `/v1/contents` | `events:write` | [Contents](/send/contents) |
+| `PUT` | `/v1/agents/{agent}` | `events:write` | [Describing an agent](/send/agents#describing-an-agent) |
+
+## Read
+
+| Method | Path | Scope | |
+| --- | --- | --- | --- |
+| `GET` | `/v1/events` | `events:read:own` or `record:read` | [List events](/read/record#list-events) |
+| `GET` | `/v1/events/{id}` | `events:read:own` or `record:read` | [One event](/read/record#one-event-with-its-text) |
+| `GET` | `/v1/record/threads/{id}` | `events:read:own` or `record:read` | [A thread](/read/record#a-thread) |
+| `GET` | `/v1/export/events` | `events:read:own` or `record:read` | [Export](/read/record#export) |
+| `GET` | `/v1/record/search` | `record:read` | [Search](/read/record#search) |
+| `GET` | `/v1/record/kinds` | any | [Kinds](/read/record#kinds) |
+| `GET` | `/v1/metrics/daily` | `metrics:read` | [Daily metrics](/read/metrics#daily-metrics) |
+| `GET` | `/v1/agents`, `/v1/agents/{agent}` | `metrics:read` | [Agents](/read/metrics#agents) |
+| `GET` | `/v1/cost` | `cost:read` | [Cost](/read/cost#cost) |
+| `GET` | `/v1/impact` | `cost:read` | [Impact](/read/cost#impact) |
+| `GET` | `/v1/kpis` | `cost:read` | [KPIs](/read/cost#kpis) (full edition) |
+| `GET` | `/v1/governance/alerts` | `governance:read` | [The queue](/read/alerts#the-queue) |
+| `GET` | `/v1/governance/alerts/{id}` | `governance:read` and `record:read` | [One alert](/read/alerts#one-alert) |
+
+## Act
+
+| Method | Path | Scope | |
+| --- | --- | --- | --- |
+| `POST` | `/v1/governance/alerts/{id}/{assign\|status\|comment\|close}` | `alerts:write` | [Working alerts](/act/alerts) |
+| `GET`, `POST` | `/v1/insights/actions` | `actions:write` | [Insight actions](/act/insight-actions) |
+| `PATCH`, `DELETE` | `/v1/insights/actions/{id}` | `actions:write` | [Insight actions](/act/insight-actions) |
+| `POST` | `/v1/agent/runs` | `runs:write` | [AI employee runs](/act/agent-runs) (full edition) |
+| `GET` | `/v1/agent/runs/{id}` | `runs:write` | [AI employee runs](/act/agent-runs) |
+| `POST` | `/v1/agent/runs/{id}/answer` | `runs:write` | [AI employee runs](/act/agent-runs) |
+| `GET`, `POST` | `/v1/webhooks` | `webhooks:manage` | [Webhooks](/act/webhooks) |
+| `DELETE` | `/v1/webhooks/{id}` | `webhooks:manage` | [Webhooks](/act/webhooks) |
+| `POST` | `/v1/webhooks/{id}/resume`, `/v1/webhooks/{id}/ping` | `webhooks:manage` | [Webhooks](/act/webhooks) |
+
+## Administration
+
+With a firm admin's console session or Orchid API key, not a connection key.
+
+| Method | Path | |
+| --- | --- | --- |
+| `GET`, `POST` | `/v1/org/connections` | every connection; add one of your own (with its first key) |
+| `PATCH`, `DELETE` | `/v1/org/connections/{id}` | pause or resume (`{"feed": bool}`); remove |
+| `POST` | `/v1/org/connections/{id}/keys` | a new key: `{"scopes"?, "expires_in_days"?, "run_as"?}` |
+| `DELETE` | `/v1/org/connections/{id}/keys/{key_id}` | revoke a key |
+| `GET` | `/v1/org/connections/scopes` | the scopes, described |
+| `GET` | `/v1/org/connections/{id}/webhooks` | a connection's webhooks |
+| `POST` | `/v1/org/connections/{id}/webhooks/{wid}/{resume\|remove}` | |
+| `GET` | `/v1/org/event-types` | built-in and your own kinds |
+| `PUT`, `DELETE` | `/v1/org/event-types/{kind}` | [Event types](/send/event-types) |
+
+## Model calls
+
+Your agents call models through Orchid's gateway with a person's Orchid API key, using the OpenAI-compatible `POST /v1/chat/completions` and `POST /v1/responses`, or the Anthropic-compatible `POST /v1/messages`. Add `X-Orchid-Agent` and `X-Orchid-Run` to count their cost by agent. See [Your agents](/send/agents#counting-what-model-calls-cost).

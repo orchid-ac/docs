@@ -1,0 +1,85 @@
+---
+title: "Metrics and agents"
+description: "Counts, minutes and cost per day and kind, and your own agents' figures."
+---
+
+Scope: `metrics:read`. Neither route returns any content.
+
+## Daily metrics
+
+```
+GET /v1/metrics/daily?since=2026-11-01&kinds=dev.agent.run,ai.request&by=actor
+```
+
+| Parameter | |
+| --- | --- |
+| `since`, `until` | dates or times; `since` defaults to 30 days ago |
+| `kinds` | comma-separated kinds; all when left out |
+| `by` | `actor`: one row per person as well |
+
+```json
+{
+  "since": "2026-11-01",
+  "until": null,
+  "days": [
+    {"day": "2026-11-25", "kind": "ai.request", "n": 1840, "minutes": 0.0, "cost_usd": 61.42},
+    {"day": "2026-11-25", "kind": "dev.agent.run", "n": 212, "minutes": 3810.0, "cost_usd": 0.0},
+    {"day": "2026-11-25", "kind": "work.task", "n": 96, "minutes": 2210.5, "cost_usd": 0.0}
+  ],
+  "labels": {"n": "counted",
+             "cost_usd": "counted for ai.request; reported for dev.* kinds",
+             "minutes": "estimated for work.task; reported for dev.* kinds"}
+}
+```
+
+`n` is how many events. `minutes` adds up each event's `attrs.minutes` (Orchid's estimate on `work.task`) or `attrs.minutes_saved` (your figure on `dev.agent.run`). `cost_usd` adds up each event's `attrs.cost_usd`: Orchid's price on `ai.request`, your own figure on `dev.*` kinds. The two kinds of figure are never mixed in one row: read the row's kind.
+
+These come from a daily projection kept as events are written, so a chart over a year reads hundreds of rows, not millions of events.
+
+## Agents
+
+```
+GET /v1/agents?days=30
+GET /v1/agents/{agent}?days=30
+```
+
+`days`: 1 to 365, default 30. The list is every agent named by an event in the period, or described with [`PUT /v1/agents/{agent}`](/send/agents#describing-an-agent), most runs first. One agent adds a `daily` series.
+
+```json
+{
+  "agent": "pricer",
+  "described": {"title": "Deal pricer", "owner": "j.smith@yourfirm.com", "team": "Credit", "description": "...",
+                "source_id": "c2a1…"},
+  "runs": 212,
+  "by_status": {"ok": 201, "failed": 9, "cancelled": 2},
+  "success_rate": 0.9571,
+  "p50_ms": 38100.0,
+  "p95_ms": 74400.0,
+  "last_run_at": "2026-11-26T10:00:41+00:00",
+  "model_calls": 1840,
+  "counted_cost_usd": 61.42,
+  "routing_saving_usd": 40.17,
+  "reported_cost_usd": 0.0,
+  "reported_minutes_saved": 3810.0,
+  "tool_calls": 655,
+  "systems": {"crm": 420, "dataroom": 235},
+  "feedback": {"accepted": 140, "corrected": 31, "rejected": 4},
+  "accepted_rate": 0.8,
+  "metrics": [{"name": "comparables_used", "unit": null, "n": 201, "sum": 603.0, "avg": 3.0, "last": 3.0,
+               "last_at": "2026-11-26T10:00:40+00:00"}],
+  "labels": {"counted_cost_usd": "counted", "routing_saving_usd": "counted",
+             "reported_cost_usd": "reported", "reported_minutes_saved": "reported"},
+  "daily": [{"day": "2026-11-25", "runs": 9, "failed": 0, "counted_cost_usd": 2.31}]
+}
+```
+
+| Field | Comes from |
+| --- | --- |
+| `runs`, `by_status`, `success_rate`, `p50_ms`, `p95_ms` | your `dev.agent.run` events. Success rate is `ok` over `ok` and `failed`. |
+| `model_calls`, `counted_cost_usd`, `routing_saving_usd` | model calls through Orchid's gateway with `X-Orchid-Agent` ([how](/send/agents#counting-what-model-calls-cost)) |
+| `reported_cost_usd`, `reported_minutes_saved` | the `cost_usd` and `minutes_saved` on your runs |
+| `tool_calls`, `systems` | your `dev.tool_call` events |
+| `feedback`, `accepted_rate` | your `dev.agent.feedback` events |
+| `metrics` | your `dev.agent.metric` events, per name |
+
+An agent with no events and no description in the period is a `404`.

@@ -1,7 +1,3 @@
-> **First-time setup**: Customize this file for your project. Prompt the user to customize this file for their project.
-> For Mintlify product knowledge (components, configuration, writing standards),
-> install the Mintlify skill: `npx skills add https://mintlify.com/docs`
-
 # Documentation project instructions
 
 ## About this project
@@ -14,8 +10,10 @@
 
 ## Terminology
 
-{/* Add product-specific terms and preferred usage */}
-{/* Example: Use "workspace" not "project", "member" not "user" */}
+- "connection key" (`osk_...`), not "API key": an Orchid API key is a person's, for model calls.
+- "event", "kind", "thread", "content", as in getting-started/concepts.mdx.
+- "counted", "estimated", "reported" for where a figure comes from.
+- Console locations in bold with › : **Admin › Developers**.
 
 ## Style preferences
 
@@ -29,5 +27,7 @@
 
 ## Content boundaries
 
-{/* Define what should and shouldn't be documented */}
-{/* Example: Don't document internal admin features */}
+- Document only what the developer API does today, read from orchid-conductor's code. Nothing planned.
+- No client names, no real people, no figures presented as real: examples are illustrations.
+- Nothing internal: no infrastructure, no Orchid's own deployment details, nothing from the private handbook.
+- The old model API, CLI, IDE integrations and self-hosting guides are retired; their URLs redirect.

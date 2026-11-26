@@ -1,0 +1,144 @@
+---
+title: "Webhooks"
+description: "Hear about events as they happen: subscribe a URL, verify each delivery, and handle retries."
+---
+
+A webhook sends events to your URL as they are recorded. Use it to open a case when an alert opens, page someone when your agent fails, or feed your own systems.
+
+Scope: `webhooks:manage`.
+
+| | |
+| --- | --- |
+| `POST /v1/webhooks` | subscribe a URL |
+| `GET /v1/webhooks` | this connection's webhooks |
+| `DELETE /v1/webhooks/{id}` | remove one |
+| `POST /v1/webhooks/{id}/resume` | resume a paused one |
+| `POST /v1/webhooks/{id}/ping` | send a test delivery now |
+
+Admins see every connection's webhooks under **Admin › Developers**, and can resume or remove them there.
+
+## Subscribe
+
+```bash
+curl -X POST https://app.orchid.ac/v1/webhooks \
+  -H "Authorization: Bearer $ORCHID_KEY" -H "Content-Type: application/json" \
+  -d '{"url": "https://cases.yourfirm.com/orchid",
+       "kinds": ["alert.changed", "dev.agent.run"],
+       "match": {"attrs.status": "failed"}}'
+```
+
+```json
+{"id": "8a3f…", "url": "https://cases.yourfirm.com/orchid", "kinds": ["alert.changed", "dev.agent.run"],
+ "match": {"attrs.status": "failed"}, "status": "active", "failures": 0,
+ "secret": "whsec_4be0…"}
+```
+
+The `secret` signs every delivery. It is shown in this answer only.
+
+| Field | | |
+| --- | --- | --- |
+| `url` | required | `https` |
+| `kinds` | required | 1 to 50 kinds, or a prefix ending in `.*`: `x.deal_desk.*`, `dev.*` |
+| `match` | optional | up to 10 fields that must all hold: `kind`, `source_id`, `actor_id`, `thread_id` or `attrs.<field>` |
+
+Up to 20 webhooks a connection.
+
+### What a key may subscribe to
+
+Without `record:read`, a key may subscribe to:
+
+- Orchid's own state changing: `alert.changed`, `rule.matched`, `budget.crossed`, `insight.action.changed`, `work.task`, `employee.run`, `webhook.failed`;
+- your own `x.*` and `dev.*` kinds, **as sent by its own connection** (Orchid adds `"source_id"` to `match` for you).
+
+Anything else (email, chat, model calls, what the AI read, other connections' events) is your firm's record, and needs `record:read`.
+
+## A delivery
+
+```
+POST https://cases.yourfirm.com/orchid
+Content-Type: application/json
+User-Agent: Orchid-Webhooks/1
+Orchid-Event-Id: 019378a2-6f40-7c1e-9a3b-5d2e8f1a4b6c
+Orchid-Event-Kind: alert.changed
+Orchid-Subscription-Id: 8a3f…
+Orchid-Signature: t=1795716000,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd
+```
+
+```json
+{"id": "019378a2-6f40-7c1e-9a3b-5d2e8f1a4b6c", "kind": "alert.changed",
+ "occurred_at": "2026-11-26T10:03:12+00:00", "org_id": "…", "source_id": null, "actor_id": null,
+ "thread_id": null, "parent_id": null, "ref": "…", "people": [],
+ "attrs": {"alert_id": "…", "status": "new", "action": "opened", "note": "Promised returns"},
+ "has_content": false}
+```
+
+**No content.** A delivery carries the event's fields and `attrs`, never its text or title: an email's subject is content. To read the rest, call [`GET /v1/events/{id}`](/read/record#one-event-with-its-text) with a key that may read it. That read is on the record.
+
+## Verify every delivery
+
+`Orchid-Signature` is `t=<unix seconds>,v1=<hex>`, where the hex is HMAC-SHA256 of `"<t>.<raw body>"` with your secret. Recompute it over the **raw** body, compare in constant time, and refuse a timestamp more than five minutes old.
+
+<CodeGroup>
+
+```python Python
+import hashlib, hmac, time
+
+def verify(secret: str, body: bytes, header: str, tolerance: int = 300) -> bool:
+    try:
+        parts = dict(p.split("=", 1) for p in header.split(","))
+        t = int(parts["t"])
+    except (ValueError, KeyError):
+        return False
+    if abs(time.time() - t) > tolerance:
+        return False
+    want = hmac.new(secret.encode(), f"{t}.".encode() + body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(want, parts.get("v1", ""))
+```
+
+```ts TypeScript
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+export function verify(secret: string, body: string, header: string, tolerance = 300): boolean {
+  const parts = Object.fromEntries(header.split(",").map((p) => p.split("=", 2) as [string, string]));
+  const t = Number(parts.t);
+  if (!t || Math.abs(Date.now() / 1000 - t) > tolerance) return false;
+  const want = createHmac("sha256", secret).update(`${t}.${body}`).digest();
+  const got = Buffer.from(parts.v1 ?? "", "hex");
+  return got.length === want.length && timingSafeEqual(got, want);
+}
+```
+
+</CodeGroup>
+
+## Answering, retries and pauses
+
+- Answer with any `2xx` within 10 seconds. Redirects are not followed.
+- **At least once.** A delivery may arrive more than once: dedupe on `Orchid-Event-Id`.
+- **Order** is not guaranteed. Use `occurred_at`.
+- A failed delivery is retried after 1 minute, 5 minutes, 30 minutes, 2 hours, 12 hours and 24 hours.
+- After the last try, the delivery is given up and the webhook is **paused**. A `webhook.failed` event is recorded and your firm's admins are told in the console. Nothing more is queued while it is paused.
+- Resume it with `POST /v1/webhooks/{id}/resume` or in the console. A delivery that was given up is not sent again; it is on the record, so fetch what you missed with [`GET /v1/events`](/read/record#list-events).
+
+## Example: open a case for each new alert
+
+```python
+from fastapi import FastAPI, Request, Response
+import httpx
+
+app = FastAPI()
+ORCHID = httpx.Client(base_url="https://app.orchid.ac/v1", headers={"Authorization": f"Bearer {KEY}"})
+
+@app.post("/orchid")
+async def orchid(request: Request):
+    body = await request.body()
+    if not verify(SECRET, body, request.headers.get("Orchid-Signature", "")):
+        return Response(status_code=401)
+    ev = await request.json()
+    if ev["kind"] == "alert.changed" and ev["attrs"].get("action") == "opened":
+        alert_id = ev["attrs"]["alert_id"]
+        case = cases.open(title=f"Orchid alert {alert_id}")              # your own case system
+        ORCHID.post(f"/governance/alerts/{alert_id}/comment", json={"note": f"Case {case.id} opened"})
+    return Response(status_code=200)
+```
+
+The comment needs a key with `alerts:write`. See [Working alerts](/act/alerts).

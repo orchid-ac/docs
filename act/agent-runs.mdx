@@ -1,0 +1,34 @@
+---
+title: "AI employee runs"
+description: "Start your firm's AI employees from your own systems, and answer them when they pause."
+---
+
+Full edition only.
+
+A key with `runs:write` starts runs of your firm's AI employees: when a deal enters a stage, a document lands, a schedule fires. An AI employee always works as a person, so the admin who makes the key names one (`run_as`). The run uses that person's AI employees and limits, and when a step is theirs to decide, the run waits for them on their Home in the console or in Claude.
+
+| | |
+| --- | --- |
+| `POST /v1/agent/runs` | `{"input": "...", "conversation_id"?, "wait"?: 0-120}` |
+| `GET /v1/agent/runs/{id}?wait=` | the run's outcome |
+| `POST /v1/agent/runs/{id}/answer` | `{"answer": "..."}` at a pause |
+
+```bash
+curl -X POST https://app.orchid.ac/v1/agent/runs \
+  -H "Authorization: Bearer $ORCHID_KEY" -H "Content-Type: application/json" \
+  -d '{"input": "Screen the Acme Corp teaser in the data room against our credit policy.", "wait": 60}'
+```
+
+The outcome is `done` (with the answer), `needs_input` or `waiting` (with the question), `running` (with its steps so far, collect it later), or `error`.
+
+Each status change is an `employee.run` event (`attrs`: `employee_id`, `run_id`, `status`, `step`): subscribe to it to hear when a run finishes or waits.
+
+## Making the key
+
+```bash
+curl -X POST https://app.orchid.ac/v1/org/connections/$CONNECTION_ID/keys \
+  -H "Authorization: Bearer $ORCHID_ADMIN_TOKEN" -H "Content-Type: application/json" \
+  -d '{"scopes": ["runs:write"], "run_as": "<their Orchid user id>", "expires_in_days": 90}'
+```
+
+A key with `runs:write` and no `run_as` is refused when made. `run_as` must be someone in your firm.

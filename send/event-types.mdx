@@ -1,0 +1,61 @@
+---
+title: "Event types"
+description: "Define your firm's own kinds of event: their fields, and what Orchid does with them."
+---
+
+Your own kinds are named `x.<name>`, in lower case letters, digits and `_`, with dots between parts: `x.agents.run`, `x.deal_desk.approval`. An event of a kind nobody defined is refused.
+
+Define them in **Admin › Developers › Event types**, or with the admin API (a console session or an admin's Orchid API key):
+
+| | |
+| --- | --- |
+| `GET /v1/org/event-types` | built-in and your own, and whether any event uses each of yours |
+| `PUT /v1/org/event-types/{kind}` | add or change one of yours |
+| `DELETE /v1/org/event-types/{kind}` | remove one of yours, only while no event uses it (`409` after) |
+
+A key reads the same list with `GET /v1/record/kinds`.
+
+## A type
+
+```json
+{
+  "title": "Deal desk approval",
+  "counts_as": ["activity", "governance"],
+  "schema": {
+    "type": "object",
+    "properties": {
+      "amount": {"type": "number"},
+      "desk": {"type": "string"},
+      "escalated": {"type": "boolean"}
+    },
+    "required": ["amount"]
+  }
+}
+```
+
+| Field | | |
+| --- | --- | --- |
+| `title` | required | how the console names it |
+| `schema` | optional | the fields `attrs` may carry. Each has a `type`: `string`, `integer`, `number`, `boolean`, `array` or `object`. `required` lists those every event must have. Field names are lower case letters, digits and `_`. |
+| `counts_as` | optional | what Orchid does with it, below |
+
+Fields not in the schema are allowed and kept. A field in the schema with the wrong type is refused.
+
+## What it counts as
+
+| Value | Then |
+| --- | --- |
+| `activity` | it appears in people's and teams' activity and in the organisation graph |
+| `work` | the work classifier reads it, so it counts towards tasks and time saved |
+| `comms` | it is searchable as communications, and archived |
+| `governance` | your firm's rules run on its `text`, as on an email: a match opens or joins an alert |
+
+## Changing and removing
+
+Changing a type's title, fields or `counts_as` applies to events sent from then on. Events already recorded are not checked again.
+
+A type that any event uses cannot be removed, because events are never deleted and need their type to be read. Stop sending it instead.
+
+## Built-in kinds
+
+Orchid's own kinds (`ai.message`, `mail.message`, `rule.matched`...) cannot be changed. See [Event kinds](/reference/event-kinds).
