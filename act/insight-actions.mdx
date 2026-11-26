@@ -1,0 +1,25 @@
+---
+title: "Insight actions"
+description: "Create and move the actions Insights recommends, from your own tracker."
+---
+
+Insights turns what it finds into actions: move a template, train a team, build an AI employee. With `actions:write`, a key keeps them in step with your own tracker.
+
+| | |
+| --- | --- |
+| `GET /v1/insights/actions` | every action, newest first |
+| `POST /v1/insights/actions` | `{"title", "why"?, "area"?, "report_id"?}` |
+| `PATCH /v1/insights/actions/{id}` | any of `status`, `owner_user_id`, `due_date`, `note`, `title` |
+| `DELETE /v1/insights/actions/{id}` | remove one |
+
+`status` is `open`, `doing`, `done` or `dropped`. `owner_user_id` is someone in your firm. `due_date` is `YYYY-MM-DD`.
+
+```bash
+curl -X PATCH https://app.orchid.ac/v1/insights/actions/$ACTION_ID \
+  -H "Authorization: Bearer $ORCHID_KEY" -H "Content-Type: application/json" \
+  -d '{"status": "done", "note": "Shipped in JIRA-4412"}'
+```
+
+Each change is an `insight.action.changed` event (`attrs`: `action_id`, `status`, `change`). Subscribe to it with a [webhook](/act/webhooks) to hear when someone moves an action in the console.
+
+A key with `actions:write` reaches these routes only. The rest of Insights (figures, reports, Ask) is for your firm's admins, in the console.

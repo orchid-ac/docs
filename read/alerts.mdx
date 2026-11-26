@@ -1,0 +1,49 @@
+---
+title: "Alerts"
+description: "Read the alert queue your firm's rules fill."
+---
+
+When your firm's rules match a communication (an email, a chat message, a `dev.tool_call`, any of your kinds that counts as governance), Orchid opens an alert, or adds to the one open on that thread. Compliance works the queue in the console. A key can read it, and with `alerts:write`, [work it](/act/alerts).
+
+## The queue
+
+```
+GET /v1/governance/alerts?status=open&since=2026-11-01T00:00:00Z
+```
+
+Scope: `governance:read`.
+
+| Parameter | |
+| --- | --- |
+| `status` | `new`, `in_review`, `escalated`, `closed`, or `open` (the first three) |
+| `since`, `until` | when the alert's first match happened |
+| `rule_id` | alerts one rule matched |
+| `limit` | 1 to 500, default 100 |
+
+```json
+{
+  "alerts": [
+    {"id": "…", "thread_id": "…", "kind": "mail.message", "title": "Re: Fund II terms", "status": "new",
+     "assignee": null, "assigned_to": null, "rule_ids": ["…"], "rule_names": ["Promised returns"],
+     "match_count": 2, "first_at": "…", "last_at": "…", "opened_at": "…", "updated_at": "…",
+     "disposition": null, "sign_off_needed": false,
+     "people": [{"id": "…", "name": "Jo Smith", "kind": "employee"}], "external": ["lp.example.com"]}
+  ],
+  "counts": {"new": 4, "in_review": 2, "escalated": 1, "sign_off": 0},
+  "sign_off": false
+}
+```
+
+The queue gives titles, people and rules, never the passages that matched.
+
+## One alert
+
+```
+GET /v1/governance/alerts/{id}
+```
+
+Scopes: `governance:read` **and** `record:read`, because one alert shows each matched message with the passage highlighted, the thread, and what the sender sent that day. Opening it is on the record, as it is from the console.
+
+## Hearing about new alerts
+
+Subscribe to `alert.changed` with a [webhook](/act/webhooks): every alert opened, assigned, escalated or closed is one.

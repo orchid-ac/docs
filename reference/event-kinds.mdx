@@ -1,0 +1,82 @@
+---
+title: "Event kinds"
+description: "The built-in kinds Orchid records, their fields, and what each counts as."
+---
+
+Your own kinds start with `x.` ([Event types](/send/event-types)). These are built in. A key may send the ones marked **you send**; Orchid writes the rest.
+
+**Counts as**: A = activity, W = work, C = comms, G = governance.
+
+## AI use
+
+| Kind | `attrs` | Counts as |
+| --- | --- | --- |
+| `ai.message` | `role` (required), `surface`, `model` | A, W, G |
+| `ai.request` | `model`, `provider`, `input_tokens`, `output_tokens`, `latency_ms`, `status_code`, `cost_usd`, `saving_usd`, `baseline_model`, `route`, `agent`, `run` | A |
+| `ai.tool_call` | `tool` (required), `system`, `action`, `outcome` | A |
+| `read` | `system` (required), `seen`, `kept`, `rules`: Orchid read an item for a request | |
+| `reaction` | `label` (required): how a person reacted to an answer | W |
+| `routing.feedback` | `kind` (required) | |
+
+## Communications and systems
+
+| Kind | `attrs` | Counts as |
+| --- | --- | --- |
+| `mail.message` | `folder`, `direction`, `labels` | A, C, G |
+| `chat.message` | `channel` | A, C, G |
+| `calendar.event` | `starts_at`, `ends_at` | A, C |
+| `file.version` | `path`, `size` | C, G |
+| `meeting.transcript` | | A, C, G |
+| `system.record` (**you send**) | `system`, `record_id` | A, G |
+
+## Your agents
+
+| Kind | `attrs` | Counts as |
+| --- | --- | --- |
+| `dev.agent.run` (**you send**) | `agent`, `status` (required), `duration_ms`, `model`, `input_tokens`, `output_tokens`, `cost_usd`, `minutes_saved`, `work_type`, `version` | A, W |
+| `dev.agent.metric` (**you send**) | `agent`, `name`, `value` (required), `unit`, `run` | |
+| `dev.agent.feedback` (**you send**) | `agent`, `label` (required), `score`, `run` | W |
+| `dev.tool_call` (**you send**) | `system`, `action` (required), `outcome`, `agent`, `run` | A, G |
+
+## Governance
+
+| Kind | `attrs` |
+| --- | --- |
+| `rule.matched` | `rule_id`, `outcome` (required), `rule`, `where`, `matched` |
+| `rule.changed` | `rule_id`, `action` (required), `before`, `after` |
+| `review.given` | `verdict` (required), `rule_id`, `note` |
+| `alert.changed` | `alert_id`, `status` (required), `action`, `assignee`, `note`, `disposition` |
+| `hold.changed` | `hold_id`, `action` (required) |
+| `record.exported` | `count` (required) |
+| `record.disposed` | `policy_id` (required), `object_key`, `days`: a record past its retention, disposed of |
+| `archive.verified` | `sampled`, `failed` (required), `ok`, `chain_ok`: the archive checked |
+| `budget.crossed` | `budget_id`, `state` (required: `warning` or `reached`), `spent_usd`, `monthly_usd`, `scope` |
+
+## Work
+
+| Kind | `attrs` | Counts as |
+| --- | --- | --- |
+| `work.task` | `work_type`, `minutes` (estimated), `outcome`, `turns` | W |
+| `work.failed` | `label` (required) | |
+| `employee.run` | `employee_id` (required), `run_id`, `status`, `step`, `version` | A, W |
+| `employee.step` | `employee_id` (required), `step` | |
+| `employee.test` | `employee_id` (required), `passed` | |
+| `insight.action.changed` | `action_id`, `status` (required), `change` | |
+
+## Access
+
+| Kind | `attrs` |
+| --- | --- |
+| `search.run` | `scope` (required), `query`, `results` |
+| `item.opened` | |
+| `ask.asked` | |
+| `api.read` | `route` (required), `results`: a read through the developer API |
+| `admin.changed` | `setting` (required): a setting, key, connection or webhook changed |
+| `person.merged` | `into` (required) |
+| `webhook.failed` | `subscription_id` (required), `event_id`, `status` |
+
+## Studio
+
+`studio.automation.run`, `studio.dashboard.run`, `studio.schedule.run` (A), `studio.dm` (A, C, G).
+
+`GET /v1/record/kinds` returns this list for your firm, with each kind's schema, and your own kinds after it.

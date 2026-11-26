@@ -1,0 +1,34 @@
+---
+title: "Working alerts"
+description: "Assign, move, comment on and close alerts from your own case system."
+---
+
+```
+POST /v1/governance/alerts/{id}/{action}
+```
+
+Scope: `alerts:write`.
+
+| Action | Body | |
+| --- | --- | --- |
+| `assign` | `{"assignee": "<Orchid user id>" \| null, "note"?}` | to someone in your firm, or to no one. A new alert moves to `in_review`. |
+| `status` | `{"status": "new" \| "in_review" \| "escalated", "note"?}` | reopening a closed alert needs a `note` saying why |
+| `comment` | `{"note": "..."}` | |
+| `close` | `{"disposition": "no_issue" \| "false_positive" \| "breach", "note"?, "rules"?}` | a breach needs a `note`. `rules` gives a different reason for one of the alert's rules: `{"<rule id>": "false_positive"}` |
+
+The answer is `{"alert": {...}}`, the alert as it now stands.
+
+## What a key cannot do
+
+- **Sign off.** If your firm asks for a second reviewer on escalated alerts and breaches, a close by a key waits for a person's sign-off in the console, as any proposed close does.
+- **Teach the rules.** When a person closes an alert, their judgement feeds the weekly rule proposals. A close by a key does not.
+
+## On the record
+
+Every change is an `alert.changed` event, with `attrs.via` naming the key, so the alert's history shows that your case system made it.
+
+```bash
+curl -X POST https://app.orchid.ac/v1/governance/alerts/$ALERT_ID/comment \
+  -H "Authorization: Bearer $ORCHID_KEY" -H "Content-Type: application/json" \
+  -d '{"note": "Case CMP-2291 opened in ServiceNow"}'
+```

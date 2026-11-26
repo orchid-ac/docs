@@ -36,123 +36,59 @@
     ],
     "primary": {
       "type": "button",
-      "label": "Get API Access",
+      "label": "Open the console",
       "href": "https://app.orchid.ac"
     }
   },
   "navigation": {
     "tabs": [
       {
-        "tab": "Docs",
+        "tab": "Developer API",
         "groups": [
           {
-            "group": "Getting Started",
+            "group": "Getting started",
             "pages": [
+              "index",
               "getting-started/quickstart",
-              "getting-started/authentication",
-              "getting-started/models"
+              "getting-started/keys-and-scopes",
+              "getting-started/concepts",
+              "getting-started/deployments"
             ]
           },
           {
-            "group": "Guides",
+            "group": "Send",
             "pages": [
-              "guides/thinking-mode",
-              "guides/provenance",
-              "guides/critical-thinking",
-              "guides/tool-calling",
-              "guides/routing",
-              "guides/max-tokens",
-              "guides/webhooks"
+              "send/events",
+              "send/event-types",
+              "send/agents",
+              "send/audit-record",
+              "send/contents"
             ]
           },
           {
-            "group": "Integrations",
+            "group": "Read",
             "pages": [
-              "integrations/python",
-              "integrations/javascript",
-              "integrations/langchain",
-              "integrations/cursor",
-              "integrations/claude-code",
-              "integrations/codex",
-              "integrations/vscode-continue",
-              "integrations/vercel-ai-sdk",
-              "integrations/litellm"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "CLI",
-        "groups": [
-          {
-            "group": "Getting Started",
-            "pages": ["cli/installation", "cli/authentication"]
-          },
-          {
-            "group": "Usage",
-            "pages": ["cli/features", "cli/slash-commands", "cli/commands"]
-          },
-          {
-            "group": "Configuration",
-            "pages": ["cli/configuration"]
-          }
-        ]
-      },
-      {
-        "tab": "API Reference",
-        "groups": [
-          {
-            "group": "Endpoints",
-            "pages": [
-              "api-reference/chat-completions",
-              "api-reference/responses",
-              "api-reference/messages",
-              "api-reference/models",
-              "api-reference/embeddings",
-              "api-reference/files",
-              "api-reference/feedback",
-              "api-reference/rate-limits",
-              "api-reference/usage",
-              "api-reference/health",
-              "api-reference/webhooks"
+              "read/record",
+              "read/metrics",
+              "read/cost",
+              "read/alerts"
             ]
           },
           {
-            "group": "Administration",
+            "group": "Act",
             "pages": [
-              "api-reference/pii",
-              "api-reference/vendor-keys",
-              "api-reference/org-members",
-              "api-reference/preferences"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "Self-Hosting",
-        "groups": [
-          {
-            "group": "Overview",
-            "pages": [
-              "self-hosting/introduction",
-              "self-hosting/architecture"
+              "act/webhooks",
+              "act/alerts",
+              "act/insight-actions",
+              "act/agent-runs"
             ]
           },
           {
-            "group": "Deployment Guide",
+            "group": "Reference",
             "pages": [
-              "self-hosting/prerequisites",
-              "self-hosting/setup",
-              "self-hosting/connecting-the-frontend",
-              "self-hosting/production-hardening"
-            ]
-          },
-          {
-            "group": "Operations & Support",
-            "pages": [
-              "self-hosting/troubleshooting",
-              "self-hosting/updating",
-              "self-hosting/faq"
+              "reference/endpoints",
+              "reference/event-kinds",
+              "reference/errors"
             ]
           }
         ]
@@ -183,12 +119,50 @@
   },
   "redirects": [
     {
-      "source": "/guides/hallucination-detection",
-      "destination": "/guides/provenance"
+      "source": "/getting-started/authentication",
+      "destination": "/getting-started/keys-and-scopes"
+    },
+    {
+      "source": "/getting-started/models",
+      "destination": "/"
+    },
+    {
+      "source": "/guides/:slug*",
+      "destination": "/"
+    },
+    {
+      "source": "/integrations/:slug*",
+      "destination": "/"
+    },
+    {
+      "source": "/cli/:slug*",
+      "destination": "/"
+    },
+    {
+      "source": "/self-hosting/:slug*",
+      "destination": "/getting-started/deployments"
+    },
+    {
+      "source": "/api-reference/webhooks",
+      "destination": "/act/webhooks"
+    },
+    {
+      "source": "/api-reference/usage",
+      "destination": "/read/cost"
+    },
+    {
+      "source": "/api-reference/:slug*",
+      "destination": "/reference/endpoints"
     }
   ],
   "contextual": {
-    "options": ["copy", "view", "chatgpt", "claude", "cursor"]
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "cursor"
+    ]
   },
   "footer": {
     "socials": {

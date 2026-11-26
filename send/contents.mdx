@@ -1,0 +1,30 @@
+---
+title: "Contents"
+description: "Upload a long text once and cite it from many events."
+---
+
+```
+POST /v1/contents
+Authorization: Bearer osk_...
+Content-Type: application/json
+
+{"text": "...", "mime": "text/plain"}
+```
+
+Scope: `events:write`. Up to 2 MB a request; 200,000 characters are kept, and the answer says when the rest was cut.
+
+```json
+{"content_id": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "chars": 48211, "cut": false}
+```
+
+The id is the sha256 of the text, so uploading the same text again gives the same id and stores nothing new. Cite it from any event with `content_id` instead of `text`:
+
+```json
+{"kind": "dev.tool_call", "ref": "run-8812/dr-3", "occurred_at": "2026-11-26T10:02:00Z",
+ "content_id": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+ "attrs": {"agent": "pricer", "system": "dataroom", "action": "read"}}
+```
+
+An event with a `content_id` that was never uploaded is refused, as is one with both `text` and `content_id`.
+
+Text only: send what was read or said in words (a PDF's extracted text, a spreadsheet as CSV). `mime` says what it was, for the console.

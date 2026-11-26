@@ -1,0 +1,161 @@
+---
+title: "Sending events"
+description: "POST /v1/events: fields, people, batches, idempotency, errors and limits."
+---
+
+```
+POST /v1/events
+Authorization: Bearer osk_...
+Content-Type: application/json
+
+{"events": [ {...}, {...} ]}
+```
+
+Scope: `events:write` (every key has it). Up to 1,000 events and 10 MB a request. A single event can also be sent on its own, without the `events` list.
+
+## An event
+
+| Field | | |
+| --- | --- | --- |
+| `kind` | required | one of your firm's own kinds (`x.<name>`), or a [built-in kind a key may send](#built-in-kinds-you-may-send) |
+| `ref` | required | **your own id for it**: a run id, a message id. Up to 500 characters. |
+| `occurred_at` | required | when it happened, ISO 8601 **with a time zone**: `2026-11-26T10:00:00Z`. Not more than a day in the future. |
+| `actor` | optional | who did it (see [People](#people)) |
+| `people` | optional | everyone else involved, the same way (up to 100) |
+| `external` | optional | outside addresses or domains involved, as text (up to 100) |
+| `thread` | optional | what it belongs to, as your own id: a deal, a case, a run. Events with the same thread are read together. |
+| `title` | optional | a short line (500 characters are kept) |
+| `text` | optional | what was said or done, in words. Searchable, and seen by your rules when the kind counts as governance. 200,000 characters are kept; the rest is cut, and the record says so. |
+| `content_id` | optional | instead of `text`: a content you [uploaded](/send/contents) |
+| `attrs` | optional | the kind's fields, checked against its schema |
+
+Any other field is refused, so a typo is not lost without anyone noticing.
+
+### Built-in kinds you may send
+
+Besides your own `x.*` kinds, a key may send:
+
+| Kind | For |
+| --- | --- |
+| `dev.agent.run`, `dev.agent.metric`, `dev.agent.feedback` | [your agents' runs and figures](/send/agents) |
+| `dev.tool_call` | [your agent calling one of your systems](/send/audit-record) |
+| `system.record` | [a record that changed in one of your systems](/send/audit-record#a-system-pushes-its-changes) |
+
+Every other built-in kind is written only by Orchid itself.
+
+## People
+
+`actor` and each of `people` can be:
+
+- **an email address**: `"j.smith@yourfirm.com"`. The usual one. The first time Orchid sees an address, it becomes a person. If it is the address of someone who uses Orchid, it is the same person.
+- **an employee id Orchid has learnt**: `"E-1042"`. To teach it, send the email and the id together once: `{"email": "j.smith@yourfirm.com", "employee_id": "E-1042"}`. From then on the id alone is enough.
+- **an Orchid person id** (a UUID), or `{"user_id": "..."}` for an Orchid login.
+
+An id that names nobody is refused rather than guessed, because a mistyped id should not become a new person.
+
+## Answers
+
+| Status | Meaning |
+| --- | --- |
+| `200 {"recorded": n, "duplicates": m}` | `n` were new, `m` had been recorded before |
+| `400` | the batch was refused and **nothing in it was recorded**. The message names the item: `event 3: attrs.amount must be number`. Fix it and send the whole batch again. |
+| `401` | not a connection key, or a revoked or expired one |
+| `403` | the connection is paused (its **Receiving** switch is off) |
+| `413` | more than 10 MB: send fewer events at once |
+| `429` | too many requests or events: wait and retry |
+
+**All or nothing.** A batch is checked whole first: every item's shape, kind, fields and people. Only then is anything written, so a `400` never leaves half a batch behind.
+
+## Idempotency: retry freely
+
+An event is identified by its **kind, `ref` and `occurred_at`**. Sending the same one again (a retry after a timeout, a backfill run twice) records nothing new and is counted in `duplicates`. So:
+
+- always send your own stable `ref`, and the same `occurred_at` each time you send that event;
+- after a timeout or a `5xx`, retry the same batch;
+- events are never changed: to correct one, send a new event that says so.
+
+Your own kinds and the `dev.*` kinds are kept apart by connection: two of your connections may each send a `run-1`. Orchid stores their `ref` as `<connection id>:<your ref>`, and that is what you read back. `system.record` is not kept apart: the same record version sent by two connections is one event.
+
+## Limits
+
+- 1,000 events and 10 MB a request.
+- 60,000 events a minute per connection (`ORCHID_EVENTS_PER_MINUTE` on your own install).
+- Requests: your deployment's rate for any key, 400 a minute unless it sets otherwise.
+- Keep `attrs` small: numbers, labels and ids. Put words in `text`.
+
+## Examples
+
+<CodeGroup>
+
+```python Python
+import os, time, httpx
+
+URL = "https://app.orchid.ac/v1/events"
+KEY = os.environ["ORCHID_KEY"]
+
+
+def send(events: list[dict]) -> dict:
+    """In batches of 1,000; a batch is retried on a timeout, 429 or 5xx (never counted twice)."""
+    totals = {"recorded": 0, "duplicates": 0}
+    with httpx.Client(timeout=30, headers={"Authorization": f"Bearer {KEY}"}) as http:
+        for i in range(0, len(events), 1000):
+            batch = {"events": events[i:i + 1000]}
+            for attempt in range(5):
+                try:
+                    r = http.post(URL, json=batch)
+                except httpx.TransportError:
+                    time.sleep(2 ** attempt)
+                    continue
+                if r.status_code == 429 or r.status_code >= 500:
+                    time.sleep(2 ** attempt)
+                    continue
+                if r.status_code == 400:
+                    raise ValueError(r.json()["error"]["message"])  # names the bad item
+                r.raise_for_status()
+                got = r.json()
+                totals["recorded"] += got["recorded"]
+                totals["duplicates"] += got["duplicates"]
+                break
+            else:
+                raise RuntimeError("Orchid did not take the batch; send it again later")
+    return totals
+```
+
+```ts TypeScript
+const URL = "https://app.orchid.ac/v1/events";
+const KEY = process.env.ORCHID_KEY!;
+
+type Who = string | { email?: string; employee_id?: string; user_id?: string };
+type OrchidEvent = {
+  kind: string; ref: string; occurred_at: string;
+  actor?: Who; people?: Who[]; external?: string[];
+  thread?: string; title?: string; text?: string; content_id?: string;
+  attrs?: Record<string, unknown>;
+};
+
+export async function send(events: OrchidEvent[]) {
+  const totals = { recorded: 0, duplicates: 0 };
+  for (let i = 0; i < events.length; i += 1000) {
+    const body = JSON.stringify({ events: events.slice(i, i + 1000) });
+    for (let attempt = 0; ; attempt++) {
+      const r = await fetch(URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
+        body,
+      }).catch(() => null);
+      if (r?.ok) {
+        const got = await r.json();
+        totals.recorded += got.recorded;
+        totals.duplicates += got.duplicates;
+        break;
+      }
+      if (r && r.status === 400) throw new Error((await r.json()).error.message);
+      if (attempt >= 4) throw new Error(`Orchid did not take the batch (${r?.status ?? "no answer"})`);
+      await new Promise((ok) => setTimeout(ok, 2 ** attempt * 1000));
+    }
+  }
+  return totals;
+}
+```
+
+</CodeGroup>

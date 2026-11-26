@@ -1,0 +1,114 @@
+---
+title: "Your agents"
+description: "Report your own agents' runs, metrics and feedback, and count what their model calls cost."
+---
+
+Orchid has built-in kinds for your firm's own agents, so every agent reads the same way in the console and in [`/v1/agents`](/read/metrics#agents), with no type to define. An agent exists as soon as an event names it in `attrs.agent`.
+
+## The kinds
+
+### `dev.agent.run`
+
+One run of an agent. Send it when the run ends.
+
+| `attrs` | | |
+| --- | --- | --- |
+| `agent` | required | the agent's name: letters, digits and `_ . : -` |
+| `status` | required | `ok`, `failed` or `cancelled` |
+| `duration_ms` | optional | how long it ran |
+| `model`, `input_tokens`, `output_tokens` | optional | for calls made outside Orchid |
+| `cost_usd` | optional | what the run cost outside Orchid (**reported**) |
+| `minutes_saved` | optional | the minutes a person would have spent (**reported**) |
+| `work_type`, `version` | optional | labels |
+
+Counts as `activity` and `work`.
+
+### `dev.agent.metric`
+
+Any number you want charted for an agent.
+
+| `attrs` | | |
+| --- | --- | --- |
+| `agent`, `name`, `value` | required | `value` is a number |
+| `unit`, `run` | optional | |
+
+### `dev.agent.feedback`
+
+What a person said about the agent's work.
+
+| `attrs` | | |
+| --- | --- | --- |
+| `agent`, `label` | required | `label`: `accepted`, `corrected` or `rejected` |
+| `score`, `run` | optional | |
+
+Counts as `work`.
+
+### `dev.tool_call`
+
+The agent called one of your systems. See [The audit record](/send/audit-record).
+
+## One run, one thread
+
+Send the run id as `thread` on every event of the run: its metrics, its tool calls, its feedback, and the run itself. `GET /v1/record/threads/{run id}` then replays the run in order.
+
+```json
+{"events": [
+  {"kind": "dev.tool_call", "ref": "run-8812/1", "occurred_at": "2026-11-26T10:00:05Z", "thread": "run-8812",
+   "actor": "j.smith@yourfirm.com", "text": "{\"comparables\": [...]}",
+   "attrs": {"agent": "pricer", "system": "crm", "action": "search", "outcome": "ok"}},
+  {"kind": "dev.agent.metric", "ref": "run-8812/m1", "occurred_at": "2026-11-26T10:00:40Z", "thread": "run-8812",
+   "attrs": {"agent": "pricer", "name": "comparables_used", "value": 3}},
+  {"kind": "dev.agent.run", "ref": "run-8812", "occurred_at": "2026-11-26T10:00:41Z", "thread": "run-8812",
+   "actor": "j.smith@yourfirm.com",
+   "attrs": {"agent": "pricer", "status": "ok", "duration_ms": 41200, "minutes_saved": 40}}
+]}
+```
+
+## Counting what model calls cost
+
+If your agent calls models through Orchid's gateway, send two headers on each call:
+
+| Header | |
+| --- | --- |
+| `X-Orchid-Agent` | the agent's name, as in `attrs.agent` |
+| `X-Orchid-Run` | the run id, as in `thread` |
+
+Orchid then writes the agent and run on its own ledger entry and on the call's `ai.request` event (with the run as its thread). So the run's cost is **counted** from what Orchid priced, and what routing saved is counted too. Your agent's own `cost_usd` stays apart, as **reported**.
+
+<CodeGroup>
+
+```python Python (OpenAI SDK)
+from openai import OpenAI
+
+def llm_for(run_id: str) -> OpenAI:
+    return OpenAI(base_url="https://app.orchid.ac/v1", api_key=os.environ["ORCHID_API_KEY"],
+                  default_headers={"X-Orchid-Agent": "pricer", "X-Orchid-Run": run_id})
+```
+
+```python Python (Anthropic SDK)
+from anthropic import Anthropic
+
+def llm_for(run_id: str) -> Anthropic:
+    return Anthropic(base_url="https://app.orchid.ac", api_key=os.environ["ORCHID_API_KEY"],
+                     default_headers={"X-Orchid-Agent": "pricer", "X-Orchid-Run": run_id})
+```
+
+</CodeGroup>
+
+The model calls use a person's Orchid API key, not a connection key: the call is that person's, under their limits and budget. A header that is not well formed (an agent name with spaces, a run id over 200 characters) is left out rather than refusing the call.
+
+## Describing an agent
+
+What an agent is called, who owns it and which team it serves:
+
+```bash
+curl -X PUT https://app.orchid.ac/v1/agents/pricer \
+  -H "Authorization: Bearer $ORCHID_KEY" -H "Content-Type: application/json" \
+  -d '{"title": "Deal pricer", "owner": "j.smith@yourfirm.com", "team": "Credit", "description": "Prices deals against comparables."}'
+```
+
+Scope: `events:write`. It is kept on the connection the key belongs to.
+
+## Reading the figures
+
+See [Agents](/read/metrics#agents): runs, success rate, p50 and p95 duration, counted cost and savings, reported cost and minutes, tool calls by system, feedback, and your metrics.

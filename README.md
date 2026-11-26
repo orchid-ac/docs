@@ -1,55 +1,26 @@
-# Mintlify Starter Kit
+# Orchid developer docs
 
-Use the starter kit to get your docs deployed and ready to customize.
+The public docs for Orchid's developer API: sending your own agents' and systems' events to Orchid,
+reading the record and your figures with code, and acting on what happens (webhooks, alerts, insight
+actions, AI employee runs). Built with [Mintlify](https://mintlify.com).
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+The API itself is in `orchid-conductor` (`app/developer.py`, `app/sources.py`, `app/subscriptions.py`,
+`app/events.py`); its engineering notes are `docs/developer-api.md` there. When the API changes, change
+these pages in the same week.
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
-
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
-
-## AI-assisted writing
-
-Set up your AI coding tool to work with Mintlify:
+## Preview
 
 ```bash
-npx skills add https://mintlify.com/docs
-```
-
-This command installs Mintlify's documentation skill for your configured AI tools like Claude Code, Cursor, Windsurf, and others. The skill includes component reference, writing standards, and workflow guidance.
-
-See the [AI tools guides](/ai-tools) for tool-specific setup.
-
-## Development
-
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
-
-```
 npm i -g mint
-```
-
-Run the following command at the root of your documentation, where your `docs.json` is located:
-
-```
 mint dev
 ```
 
-View your local preview at `http://localhost:3000`.
+`mint broken-links` checks every link.
 
-## Publishing changes
+## Layout
 
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
-
-## Need help?
-
-### Troubleshooting
-
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
-
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+- `getting-started/` -- quickstart, keys and scopes, concepts, deployments
+- `send/` -- events, event types, agents, the audit record, contents
+- `read/` -- the record, metrics and agents, cost and savings, alerts
+- `act/` -- webhooks, working alerts, insight actions, AI employee runs
+- `reference/` -- every endpoint, every event kind, errors and limits

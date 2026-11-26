@@ -1,0 +1,51 @@
+---
+title: "Errors and limits"
+description: "Error shape, status codes, and every limit in one place."
+---
+
+## Errors
+
+Every error has the same shape:
+
+```json
+{"error": {"message": "event 3: attrs.amount must be number", "type": "invalid_request_error",
+           "code": "bad_request", "param": null}}
+```
+
+The message is written for a person: show it, or log it.
+
+| Status | `code` | Means |
+| --- | --- | --- |
+| `400` | `bad_request`, `invalid_json`, `connection_error` | what you sent cannot be taken as it is. The message says what to change. For a batch of events, nothing in it was recorded. |
+| `401` | `invalid_source_key` | no connection key, or one that is revoked or expired |
+| `403` | `missing_scope` | the key lacks the scope the route needs; the message names it |
+| `403` | `missing_run_as` | a runs key with no one to run as |
+| `403` | | the connection is paused (sending events) |
+| `404` | `not_found` | no such event, thread, agent, alert or webhook, or one your key may not see. A route the edition does not have is also `404`. |
+| `413` | `batch_too_large`, `content_too_large` | over 10 MB of events, or 2 MB of content |
+| `429` | `rate_limit_exceeded` | too many requests or events: wait and retry |
+| `503` | `record_unavailable`, `keys_unavailable` | this install's database does not have what the route needs yet, or cannot be reached: retry later |
+
+Retry `429` and `5xx` with backoff. Never retry a `400` unchanged.
+
+## Limits
+
+| | |
+| --- | --- |
+| Events a request | 1,000, and 10 MB |
+| Events a minute | 60,000 per connection |
+| Requests a minute | your deployment's rate for any key, 400 unless it sets otherwise |
+| Text kept per event or content | 200,000 characters |
+| Content upload | 2 MB a request |
+| `ref` | 500 characters |
+| `people`, `external` | 100 each per event |
+| Page size (`/v1/events`) | 500 |
+| Export | 400 days a request |
+| Search results | 200 |
+| Days (`/v1/cost`, `/v1/impact`, `/v1/agents`) | 365 |
+| Your own connections | 50 per firm |
+| Keys | 10 per connection |
+| Key expiry | 1 to 730 days, or none |
+| Webhooks | 20 per connection |
+| Webhook answer | 10 seconds |
+| Agents described | 200 per connection |

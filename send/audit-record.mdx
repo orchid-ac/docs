@@ -1,0 +1,62 @@
+---
+title: "The audit record"
+description: "Put your own agents and systems in the audit log, beside what Orchid's AI read, under your firm's rules."
+---
+
+The audit log shows what AI read and did in your firm's systems. Three ways feed it.
+
+| What happened | How it is recorded | Kind |
+| --- | --- | --- |
+| AI called your system **through Orchid** (a custom integration) | Orchid records it itself, item by item, after your rules | `ai.tool_call`, `read` |
+| A record **changed** in your system | Orchid asks your system what changed every few minutes, or your system pushes it | `system.record` |
+| **Your own agent** called your system directly | your agent sends it | `dev.tool_call` |
+
+## Your agent called a system
+
+Send a `dev.tool_call` for each call your agent makes to one of your systems, with what it read or wrote as `text`.
+
+```json
+{"kind": "dev.tool_call", "ref": "run-8812/crm-1", "occurred_at": "2026-11-26T10:00:05Z",
+ "thread": "run-8812", "actor": "j.smith@yourfirm.com",
+ "text": "Acme Corp: last three deals priced at 8.7x, 9.1x and 10.2x EBITDA.",
+ "attrs": {"agent": "pricer", "system": "crm", "action": "search", "outcome": "ok"}}
+```
+
+| `attrs` | | |
+| --- | --- | --- |
+| `system` | required | your name for the system: `crm`, `dataroom` |
+| `action` | required | `read`, `write` or `search` |
+| `outcome`, `agent`, `run` | optional | |
+
+It counts as `activity` and `governance`. So:
+
+- it appears in the audit log's activity beside Orchid's own reads;
+- your firm's rules run on its `text`, and a match opens an alert as for an email;
+- it is searchable by people with access to the record.
+
+<Note>
+  A `dev.tool_call` is your firm's own account of what happened, not something Orchid saw. It carries the connection that sent it and the key that wrote it (`attrs.via`), so the audit log can always tell them apart.
+</Note>
+
+## A system's changes
+
+### Orchid asks: "what changed"
+
+If your system is set up in Orchid as a custom integration (MCP or HTTP), an admin can switch **recording** on and name one of its tools as the "what changed" call. Every few minutes Orchid calls it with the time it last read up to, and records each changed record as a `system.record` event, for the people your firm records. No code on your side beyond the tool.
+
+### A system pushes its changes
+
+A system that cannot answer "what changed" can push instead:
+
+```json
+{"kind": "system.record", "ref": "deal-442@2026-11-26T09:58:00Z", "occurred_at": "2026-11-26T09:58:00Z",
+ "actor": "a.jones@yourfirm.com", "thread": "deal-442", "title": "Deal 442: stage moved to IC",
+ "text": "Stage: IC review. Owner: A. Jones. Next step: IC on 3 December.",
+ "attrs": {"system": "crm", "record_id": "deal-442"}}
+```
+
+`attrs.system` is required. Use a `ref` that names the record's version (its id and the time it changed), so each change is one event and a re-sent change is a duplicate.
+
+## Large documents
+
+If your agent reads a long document many times, [upload it once](/send/contents) and cite its `content_id` on each `dev.tool_call`. It is stored, searched and checked by your rules once.
