@@ -42,7 +42,7 @@ GET /v1/cost?days=30&group=agent
 }
 ```
 
-- **Spend** is what model calls cost at the price of the model that served each, from Orchid's billing ledger.
+- **Spend** is what model calls cost, at the price of the model that served each.
 - **Routing saving** is, for each call `orchid-auto` routed, what your firm's baseline model would have cost minus what it did cost.
 - **Without routing** is spend plus saving: what the same work would have cost on the baseline model.
 
@@ -105,5 +105,5 @@ Full edition only. Three pillars:
 | Key | |
 | --- | --- |
 | `cost` | spend, saving against your baseline model, and the percentage |
-| `quality` | for calls `orchid-auto` routed, the quality kept against the best model the call could have used, by the router's own scores |
+| `quality` | how much answer quality routing kept, against the best model each call could have used |
 | `security` | what PII protection found and masked |

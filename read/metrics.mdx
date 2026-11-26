@@ -34,8 +34,6 @@ GET /v1/metrics/daily?since=2026-11-01&kinds=dev.agent.run,ai.request&by=actor
 
 `n` is how many events. `minutes` adds up each event's `attrs.minutes` (Orchid's estimate on `work.task`) or `attrs.minutes_saved` (your figure on `dev.agent.run`). `cost_usd` adds up each event's `attrs.cost_usd`: Orchid's price on `ai.request`, your own figure on `dev.*` kinds. The two kinds of figure are never mixed in one row: read the row's kind.
 
-These come from a daily projection kept as events are written, so a chart over a year reads hundreds of rows, not millions of events.
-
 ## Agents
 
 ```
@@ -73,13 +71,6 @@ GET /v1/agents/{agent}?days=30
 }
 ```
 
-| Field | Comes from |
-| --- | --- |
-| `runs`, `by_status`, `success_rate`, `p50_ms`, `p95_ms` | your `dev.agent.run` events. Success rate is `ok` over `ok` and `failed`. |
-| `model_calls`, `counted_cost_usd`, `routing_saving_usd` | model calls through Orchid's gateway with `X-Orchid-Agent` ([how](/send/agents#counting-what-model-calls-cost)) |
-| `reported_cost_usd`, `reported_minutes_saved` | the `cost_usd` and `minutes_saved` on your runs |
-| `tool_calls`, `systems` | your `dev.tool_call` events |
-| `feedback`, `accepted_rate` | your `dev.agent.feedback` events |
-| `metrics` | your `dev.agent.metric` events, per name |
+Counted cost and routing savings come from model calls your agent made with [`X-Orchid-Agent`](/send/agents#counting-what-model-calls-cost). Reported figures are the ones your runs sent.
 
 An agent with no events and no description in the period is a `404`.

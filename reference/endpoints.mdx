@@ -47,20 +47,10 @@ Base URL: `https://app.orchid.ac/v1` on Orchid's cloud, or your install's own ad
 
 ## Administration
 
-With a firm admin's console session or Orchid API key, not a connection key.
+Most administration is done in the console, under **Admin › Developers**. These routes take a firm admin's console session or Orchid API key, not a connection key.
 
 | Method | Path | |
 | --- | --- | --- |
-| `GET`, `POST` | `/v1/org/connections` | every connection; add one of your own (with its first key) |
-| `PATCH`, `DELETE` | `/v1/org/connections/{id}` | pause or resume (`{"feed": bool}`); remove |
-| `POST` | `/v1/org/connections/{id}/keys` | a new key: `{"scopes"?, "expires_in_days"?, "run_as"?}` |
+| `POST` | `/v1/org/connections/{id}/keys` | [make a key](/getting-started/keys-and-scopes#making-a-key) |
 | `DELETE` | `/v1/org/connections/{id}/keys/{key_id}` | revoke a key |
-| `GET` | `/v1/org/connections/scopes` | the scopes, described |
-| `GET` | `/v1/org/connections/{id}/webhooks` | a connection's webhooks |
-| `POST` | `/v1/org/connections/{id}/webhooks/{wid}/{resume\|remove}` | |
-| `GET` | `/v1/org/event-types` | built-in and your own kinds |
-| `PUT`, `DELETE` | `/v1/org/event-types/{kind}` | [Event types](/send/event-types) |
-
-## Model calls
-
-Your agents call models through Orchid's gateway with a person's Orchid API key, using the OpenAI-compatible `POST /v1/chat/completions` and `POST /v1/responses`, or the Anthropic-compatible `POST /v1/messages`. Add `X-Orchid-Agent` and `X-Orchid-Run` to count their cost by agent. See [Your agents](/send/agents#counting-what-model-calls-cost).
+| `PUT`, `DELETE` | `/v1/org/event-types/{kind}` | [define or remove an event type](/send/event-types) |

@@ -1,36 +1,18 @@
 ---
 title: "Deployments"
-description: "Base URLs, and where your events are kept on Orchid's cloud, a firm VM or on premises."
+description: "Base URLs on Orchid's cloud, a firm VM or on premises."
 ---
 
-The developer API is the same in every deployment: the same paths, fields and answers. Only the address and where your data is kept differ.
+The developer API is the same in every deployment: the same paths, fields and answers. Only the address differs.
 
-| Deployment | Base URL | Where your events and keys are kept |
-| --- | --- | --- |
-| Orchid's cloud | `https://app.orchid.ac/v1` | Orchid's central database, kept apart by firm with row-level security |
-| Firm VM | your install's own address, such as `https://orchid.yourfirm.com/v1` | your own database on the VM |
-| On premises | your gateway's address on your network | your own database |
+| Deployment | Base URL |
+| --- | --- |
+| Orchid's cloud | `https://app.orchid.ac/v1` |
+| Firm VM | your install's own address, such as `https://orchid.yourfirm.com/v1` |
+| On premises | your gateway's address on your network |
 
-On a firm VM or on premises, keys are checked in your own database, and nothing you send through the developer API reaches Orchid's cloud.
-
-## Editions
-
-Orchid runs as one of two editions:
-
-- **Full**: Orchid answers questions itself, routes models and runs AI employees.
-- **Monitor**: Claude or ChatGPT answers, and Orchid checks and records each request.
-
-Everything in these docs works in both editions, except [AI employee runs](/act/agent-runs) and [KPIs](/read/cost#kpis), which need the full edition. In the monitor edition those routes do not exist (`404`).
+On a firm VM or on premises, your events stay in your own database.
 
 ## Webhook addresses
 
-On Orchid's cloud, webhooks are only sent to public addresses (`https`, resolving to a public IP), checked when the webhook is made and again before each delivery. On a firm VM or on premises, Orchid sends wherever your network allows.
-
-## Database updates
-
-The developer API's read side, scopes and webhooks need two database updates, applied by Orchid with each release:
-
-- `0101_developer_api` on Orchid's cloud;
-- `0041_developer_api` in a firm's own database.
-
-Until a firm's database has been updated, keys work with the default scopes (send, and read back your own), and making a key with more scopes is refused with a message saying so.
+On Orchid's cloud, webhooks are only sent to public `https` addresses. On a firm VM or on premises, Orchid sends wherever your network allows.

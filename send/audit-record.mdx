@@ -8,7 +8,7 @@ The audit log shows what AI read and did in your firm's systems. Three ways feed
 | What happened | How it is recorded | Kind |
 | --- | --- | --- |
 | AI called your system **through Orchid** (a custom integration) | Orchid records it itself, item by item, after your rules | `ai.tool_call`, `read` |
-| A record **changed** in your system | Orchid asks your system what changed every few minutes, or your system pushes it | `system.record` |
+| A record **changed** in your system | your system pushes it, or Orchid reads it from a connected system | `system.record` |
 | **Your own agent** called your system directly | your agent sends it | `dev.tool_call` |
 
 ## Your agent called a system
@@ -34,19 +34,9 @@ It counts as `activity` and `governance`. So:
 - your firm's rules run on its `text`, and a match opens an alert as for an email;
 - it is searchable by people with access to the record.
 
-<Note>
-  A `dev.tool_call` is your firm's own account of what happened, not something Orchid saw. It carries the connection that sent it and the key that wrote it (`attrs.via`), so the audit log can always tell them apart.
-</Note>
-
 ## A system's changes
 
-### Orchid asks: "what changed"
-
-If your system is set up in Orchid as a custom integration (MCP or HTTP), an admin can switch **recording** on and name one of its tools as the "what changed" call. Every few minutes Orchid calls it with the time it last read up to, and records each changed record as a `system.record` event, for the people your firm records. No code on your side beyond the tool.
-
-### A system pushes its changes
-
-A system that cannot answer "what changed" can push instead:
+If your system is already connected to Orchid as an integration, an admin can switch on recording for it in the console, with no code. Otherwise, push its changes:
 
 ```json
 {"kind": "system.record", "ref": "deal-442@2026-11-26T09:58:00Z", "occurred_at": "2026-11-26T09:58:00Z",
