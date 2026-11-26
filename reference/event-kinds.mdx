@@ -30,9 +30,9 @@ Your own kinds start with `x.` ([Event types](/send/event-types)). These are the
 
 | Kind | `attrs` | Counts as |
 | --- | --- | --- |
-| `dev.agent.run` (**you send**) | `agent`, `status` (required), `duration_ms`, `model`, `input_tokens`, `output_tokens`, `cost_usd`, `minutes_saved`, `work_type`, `version` | A, W |
+| `dev.agent.run` (**you send**) | `agent`, `status` (required), `duration_ms`, `model`, `input_tokens`, `output_tokens`, `cost_usd`, `minutes_saved`, `work_type`, `version`, `variant` | A, W |
 | `dev.agent.metric` (**you send**) | `agent`, `name`, `value` (required), `unit`, `run` | |
-| `dev.agent.feedback` (**you send**) | `agent`, `label` (required), `score`, `run` | W |
+| `dev.agent.feedback` (**you send**) | `agent`, `label` (required), `note`, `score`, `run` | W |
 | `dev.tool_call` (**you send**) | `system`, `action` (required), `outcome`, `agent`, `run` | A, G |
 
 ## Governance

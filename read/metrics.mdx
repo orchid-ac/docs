@@ -67,9 +67,25 @@ GET /v1/agents/{agent}?days=30
                "last_at": "2026-11-26T10:00:40+00:00"}],
   "labels": {"counted_cost_usd": "counted", "routing_saving_usd": "counted",
              "reported_cost_usd": "reported", "reported_minutes_saved": "reported"},
-  "daily": [{"day": "2026-11-25", "runs": 9, "failed": 0, "counted_cost_usd": 2.31}]
+  "daily": [{"day": "2026-11-25", "runs": 9, "failed": 0, "counted_cost_usd": 2.31}],
+  "results": {
+    "with": {"runs": 212, "people": 14, "tasks": 212, "accepted_first_time_pct": 81.2, "avg_corrections": 0.24,
+             "median_minutes": 1.1, "hours_saved": 118.4, "value": 17760.0, "task_cost": 61.42,
+             "cost_per_task": 0.29, "failures": 13,
+             "kinds": [{"kind": "wrong_fact", "label": "got a fact or figure wrong", "count": 7}]},
+    "without": {"tasks": 96, "accepted_first_time_pct": 58.0, "avg_corrections": 0.9, "cost_per_task": 0.61,
+                "hours_saved": 31.0, "failures": 22},
+    "work_type": "Comparable companies",
+    "variant": {"a": {"runs": 150, "...": "..."}, "b": {"runs": 62, "...": "..."}},
+    "versions": [["3", 150], ["4", 62]],
+    "no_feedback": 37,
+    "for_nobody": 4,
+    "reported_minutes_saved": 3810.0
+  }
 }
 ```
+
+One agent also has `results`: its runs measured as tasks, the same figures as an AI employee's ([how](/send/agents#how-runs-are-measured)). `with` is the agent; `without` is the same kind of work done in your firm with no agent; `variant` appears when runs carry one. `no_feedback` is how many runs had no feedback and so are left out of acceptance; `for_nobody`, how many were sent with no person and count to the agent's owner.
 
 Counted cost and routing savings come from model calls your agent made with [`X-Orchid-Agent`](/send/agents#counting-what-model-calls-cost). Reported figures are the ones your runs sent.
 
